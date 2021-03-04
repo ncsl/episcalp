@@ -14,6 +14,20 @@ Data should be organized in the BIDS-iEEG/BIDS-EEG format:
 https://github.com/bids-standard/bids-specification/blob/master/src/04-modality-specific-files/04-intracranial-electroencephalography.md
 
 
+High-level Pipeline
+-------------------
+
+1. (Optional) If data is not in BIDS format yet, a BIDS conversion script should be carried out using `mne-bids`.
+
+2. Raw data is stored in the `<bids_root>` of the data 
+directory. Raw data format is in BrainVision, or EDF format.
+
+3. ICA preprocessing is done in `eeglab`, where data is then output in the `.set` data format. 
+
+4. ICA preprocessed data will be written to `<bids_root>/derivatives/` folder using `mne_bids` copy_eeglab function to convert to BIDS.
+   
+5. Further analysis will either start from the raw data, or from the ICA preprocessed data.
+
 Installation Guide
 ==================
 
