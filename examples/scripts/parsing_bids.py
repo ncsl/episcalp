@@ -1,7 +1,7 @@
 from mne_bids import get_entity_vals, BIDSPath
 
 
-def get_bids_paths(root):
+def get_bids_paths(root, task=None, acquisition=None, ext=".vhdr"):
     """
     Get a list of all the bids_paths in a certain dataset.
 
@@ -30,13 +30,19 @@ def get_bids_paths(root):
                 # The other entities here are likely all standard across your dataset
                 bids_path = BIDSPath(subject=subject,
                                      session=session,
-                                     task="ica",
-                                     acquisition="eeg",
-                                     datatype='eeg',
+                                     task=task,
+                                     acquisition=acquisition,
+                                     datatype=acquisition,
                                      run=run,
-                                     suffix='eeg',
-                                     extension=".vhdr", root=root)
+                                     suffix=acquisition,
+                                     extension=ext, root=root)
                 # Finds all the runs that match the above params
                 add_paths = bids_path.match()
                 bids_fpaths.extend(add_paths)
     return bids_fpaths
+
+
+if __name__ == "__main__":
+    bids_root = "D:/ScalpData/test_convert"
+    bids_paths = get_bids_paths(bids_root, task="monitor", acquisition="eeg", ext=".edf")
+    print(bids_paths)

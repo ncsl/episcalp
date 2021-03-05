@@ -31,7 +31,7 @@ def get_best_matching_montage(ch_names, verbose=True) -> str:
         montage.ch_names = [ch.upper() for ch in montage.ch_names]
 
         # score this montage
-        montage_score = len([ch for ch in ch_names if ch in montage.ch_names])
+        montage_score = len([ch for ch in ch_names if ch.upper() in montage.ch_names])
         if montage_score > best_montage_score:
             best_montage = montage_name
             best_montage_score = montage_score

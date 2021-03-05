@@ -7,7 +7,9 @@ from episcalp.utils import (
 )
 
 
-def run_pyprep(bids_path, figures_path, reference, rereference=False, plot_raw=True, verbose=True):
+def run_pyprep(bids_path, figures_path, reference, rereference=False, plot_raw=True, descriptions=None, verbose=True):
+    if descriptions is None:
+        descriptions = ["onset", "@seizure", "offset", "sz event"]
     raw = read_scalp_eeg(bids_path, reference, rereference=rereference, verbose=verbose)
 
     # save output data
@@ -24,7 +26,7 @@ def run_pyprep(bids_path, figures_path, reference, rereference=False, plot_raw=T
     annotations = _parse_sz_events(
         events,
         events_id,
-        descriptions=["onset", "@seizure", "offset", "sz event"],
+        descriptions=descriptions,
         sfreq=sfreq,
         orig_time=orig_time,
     )

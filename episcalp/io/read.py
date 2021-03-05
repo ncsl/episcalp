@@ -19,6 +19,15 @@ def _map_ch_to_type(ch_name):
     return "eeg"
 
 
+def _get_montage_rename_dict(ch_names, montage_ch_names):
+    channel_rename = {}
+    for ch in ch_names:
+        for mch in montage_ch_names:
+            if ch.upper() == mch.upper():
+                channel_rename[ch] = mch
+    return channel_rename
+
+
 def read_scalp_eeg(
     bids_path, reference, rereference=False, resample_sfreq=None, verbose=True
 ):
@@ -41,9 +50,10 @@ def read_scalp_eeg(
 
     # try to get the best matching montage based on string matching of channels
     best_montage, montage_name = get_best_matching_montage(raw.ch_names)
+    raw.rename_channels(_get_montage_rename_dict(raw.ch_names, best_montage.ch_names))
 
     # set montage and then convert all to upper-casing again
-    raw.set_montage(best_montage, on_missing="warn", match_case=False)
+    raw.set_montage(best_montage, on_missing="warn")
 
     # get eeg channels that are not inside montage
     # assign them to bads, (or non-eeg) channels
