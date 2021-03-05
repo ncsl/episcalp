@@ -22,6 +22,7 @@ mypy = "*"
 vtk = "*"
 pyvista = "*"
 pyqt5 = "*"
+python-pptx = "*"
 
 [packages]
 numpy = "*"
