@@ -11,7 +11,7 @@ from mne_bids.path import _parse_ext
 from mne_bids.tsv_handler import _from_tsv, _to_tsv
 from mne_bids.utils import _write_json
 
-from episcalp.bids.utils import _channel_text_scrub, preprocess_raw
+from episcalp.bids.utils import _channel_text_scrub, bids_preprocess_raw
 
 
 def _replace_ext(fname, ext, verbose=False):
@@ -100,7 +100,7 @@ def write_epitrack_bids(source_path,
 
     # Scrub channel names to remove extra characters like 'EEG' and '-Ref'
     # Set appropriate channel types
-    raw = preprocess_raw(raw, bids_path, montage)
+    raw = bids_preprocess_raw(raw, bids_path, montage)
 
     # Set the montage
     if acquisition == "eeg":

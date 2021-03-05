@@ -61,7 +61,7 @@ def _channel_text_scrub(raw: mne.io.BaseRaw):
     return raw
 
 
-def preprocess_raw(raw, bids_path, montage):
+def bids_preprocess_raw(raw, bids_path, montage):
     """Preprocess raw channel names and types."""
     # acquisition in EZTrack is encoded for eeg,ecog,seeg
     acquisition = bids_path.acquisition
