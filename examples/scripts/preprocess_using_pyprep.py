@@ -1,5 +1,6 @@
-from episcalp.preprocess.run_pyprep import run_pyprep
-from .parsing_bids import get_bids_paths
+#!python
+from episcalp import run_pyprep
+from examples.scripts.parsing_bids import get_bids_paths
 
 
 def using_pyprep(root, reference="monopolar", figures_path=None, plot_raw=False):

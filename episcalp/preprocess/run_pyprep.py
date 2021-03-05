@@ -1,3 +1,4 @@
+#!python
 import mne
 
 from episcalp.io.read import read_scalp_eeg
