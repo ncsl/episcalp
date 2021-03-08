@@ -37,14 +37,9 @@ Setup environment from pipenv
 
    pipenv install --dev
 
-   # use pipenv to install private repo
-   pipenv install -e git+git@github.com:adam2392/eztrack
-
-   # or
-   pipenv install -e /Users/adam2392/Documents/eztrack
-
-   # if dev versions are needed
-   pipenv install https://api.github.com/repos/mne-tools/mne-bids/zipball/master
+   # If this step hangs, you can skip the locking phase
+   pipenv install --dev --skip-lock
+   
 
 Organization Guide
 ------------------
