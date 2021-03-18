@@ -20,7 +20,7 @@ If you fail to do this, this package will default to the slower version of the a
 this analysis. 
 
 ## How to Use
-This package achieves its goal in 2 steps:
+This package achieves its goal in 2 steps, which are wrapped in run_me.m:
 1. Apply frequency based filters. A notch filter around the powerline frequency and a bandpass filter from 0.5-90Hz are
 applied.
 2. Artifacts are removed based on the output from Independent Component Analysis.
@@ -28,9 +28,5 @@ applied.
 To run the complete pipeline, follow these steps:
 1. Put all the source files in one folder, e.g. `sourcedata/unfiltered`
 2. Define an output directory for the filtered file, e.g. `sourcedata/filtered`
-3. Run `batchFilter.m` with the above inputs, specifying if the sourcefiles are `.edf` or `.bdf` and the name of the
-dataset, e.g. `scalp_jhu`. This will save a file `scalp_jhu.mat` to the output directory provided in (2) 
-4. Load in the file created by (3)
-5. Define a new output directory for the ICA filtered data, e.g `sourcedata/ICA_filtered`
-6. Run `batchFilterICA.m` with the structure loaded in (4) and the directory from (5). This will save `.mat` files for 
-each original `.edf` (or `.bdf`) file.
+3. Modify EEGLabPath, folder (from 1), outputdir (from 2) and group_size in run_me.m`
+4. Run the script
