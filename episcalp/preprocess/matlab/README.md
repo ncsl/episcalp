@@ -19,6 +19,15 @@ If you fail to do this, this package will default to the slower version of the a
 **Note** that binICA returns less information than the default runICA, but the other outputs are not currently used in
 this analysis. 
 
+## Necessary Matlab toolboxes
+
+- Signal Processing Toolbox
+
+## Necessary 3rd party toolboxes
+
+- eeglab (see installation guide)
+
+
 ## How to Use
 This package achieves its goal in 2 steps, which are wrapped in run_me.m:
 1. Apply frequency based filters. A notch filter around the powerline frequency and a bandpass filter from 0.5-90Hz are

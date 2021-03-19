@@ -1,10 +1,14 @@
-function batchFilterICA(pt_data, outdir)
+function batchFilterICA(pt_data, outdir, EEGLabPath)
     % pt_data is a struct with cell array fields record, hdr, and
     % source_file, which are the outputs of the filtered data
     records = pt_data.record';
     hdrs = pt_data.hdr;
     fnames = pt_data.source_files;
     num_patients = size(records);
+    
+    % make output directory
+    mkdir(outdir);
+    
     for pat = 1:num_patients
         % extract the record info
         record = records{pat};
@@ -19,7 +23,7 @@ function batchFilterICA(pt_data, outdir)
         EEG = pop_importdata('dataformat','array','nbchan',0,'data',record,'setname',pat_name,'srate',srate,'pnts',0,'xmin',0);
         % Subset the channels to the standard 1020 channels
         cedName = fullfile(outdir, pat_name+".ced");
-        EEG = handleChannels(EEG, labels, cedName);
+        EEG = handleChannels(EEG, labels, cedName, EEGLabPath);
         % perform the actual ICA. Make sure you have the binICA files set
         % or else this will be very slow
         EEG = filterICA(EEG, true);

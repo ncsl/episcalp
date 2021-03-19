@@ -1,4 +1,4 @@
-function EEG = handleChannels(EEG, labels, cedName)
+function EEG = handleChannels(EEG, labels, cedName, EEGLabPath)
     %% Wrapper function to clean up channels in EEGlab
     %   EEG: EEG data structure in EEGlab
     %   labels: Total channel label set for the data
@@ -22,9 +22,10 @@ function EEG = handleChannels(EEG, labels, cedName)
     writeCED(labels_clean, cedName);
     disp(cedName)
     cedNameChar = char(cedName);
-    EEG = pop_chanedit(EEG, 'lookup', 'D:\\Downloads\\eeglab_default\\eeglab2020_0\\plugins\\dipfit\\standard_BESA\\standard-10-5-cap385.elp', ...
+    elp_path = fullfile(EEGLabPath, 'plugins', 'dipfit', 'standard_BESA', 'standard-10-5-cap385.elp');
+    EEG = pop_chanedit(EEG, 'lookup', elp_path, ...
         'load', {cedNameChar,'filetype','chanedit'}, ...
-        'lookup','D:\\Downloads\\eeglab_default\\eeglab2020_0\\plugins\\dipfit\\standard_BESA\\standard-10-5-cap385.elp');
+        'lookup',elp_path);
     channel_list = getMontageChannels(labels_clean)';
     disp(channel_list)
     EEG = pop_select( EEG, 'channel', channel_list);
