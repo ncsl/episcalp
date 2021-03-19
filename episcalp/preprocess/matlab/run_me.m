@@ -1,7 +1,8 @@
+%EEGLabPath = "D:/Downloads/eeglab_default/eeglab2020_0";
 EEGLabPath = '/home/adam2392/Documents/eeglab2021.0'; % change this
 addpath(genpath(EEGLabPath))
 
-%folder = "D:/ScalpData/test_parallel/sourcedata/normal";  % change this
+%folder = "D:/ScalpData/test_parallel/sourcedata/";  % change this
 folder = '/home/adam2392/hdd3/tuh_normal_vs_abnormal/sourcedata/normal';
 dataset = 'tuh_normal_vs_abnormal';  % used to save the temporary files, not important
 extension = '.edf';
