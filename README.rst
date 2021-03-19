@@ -1,4 +1,3 @@
-
 Epilepsy Scalp Study
 ====================
 
@@ -35,16 +34,24 @@ Setup environment from pipenv
 
 .. code-block::
 
+    # create virtual environment
+   python3.8 -m venv .venv
+
    pipenv install --dev
+
+   # if dev versions are needed
+   pipenv install https://api.github.com/repos/mne-tools/mne-bids/zipball/master
+
+If you're using some private repos, such as ``eztrack``, here's some helper code
+for installing.
+
+.. code-block::
 
    # use pipenv to install private repo
    pipenv install -e git+git@github.com:adam2392/eztrack
 
    # or
    pipenv install -e /Users/adam2392/Documents/eztrack
-
-   # if dev versions are needed
-   pipenv install https://api.github.com/repos/mne-tools/mne-bids/zipball/master
 
 Organization Guide
 ------------------
