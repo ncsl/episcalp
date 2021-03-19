@@ -1,4 +1,4 @@
-function output = filterICA(EEG)
+function output = filterICA(EEG, bin)
     %% Filter the data via ICA
     % Input:
     %   EEG: the eeg object used in EEGLab
@@ -14,9 +14,18 @@ function output = filterICA(EEG)
     % This is faster than runica. If binica is not configured correctly, 
     % use runica. The infomax ICA algorithm is random so do not expect to 
     % have exactly the same results when running this multiple times.
-    try
-        EEG = pop_runica(EEG,'icatype','binica', 'extended',1,'interupt','on');
-    catch
+    if (nargin < 2)
+        bin = true;
+    end
+    if (bin)
+        try
+            disp("trying binica")
+            EEG = pop_runica(EEG,'icatype','binica', 'extended',1,'interupt','on');
+        catch
+            disp("using runica")
+            EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
+        end
+    else
         EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
     end
     % EEG = pop_runica(EEG);
