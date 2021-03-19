@@ -1,8 +1,7 @@
-%EEGLabPath = "D:/Downloads/eeglab_default/eeglab2020_0";
 EEGLabPath = '/home/adam2392/Documents/eeglab2021.0'; % change this
 addpath(genpath(EEGLabPath))
 
-%folder = "D:/ScalpData/test_parallel/sourcedata/";  % change this
+%folder = "D:/ScalpData/test_parallel/sourcedata/normal";  % change this
 folder = '/home/adam2392/hdd3/tuh_normal_vs_abnormal/sourcedata/normal';
 dataset = 'tuh_normal_vs_abnormal';  % used to save the temporary files, not important
 extension = '.edf';
@@ -10,14 +9,16 @@ extension = '.edf';
 outputdir = '/home/adam2392/hdd3/tuh_normal_vs_abnormal/derivatives/ICA/normal';
 
 group_size=5; % chunk the data to make computation a little faster
-path_separator = "/";  % change for Windows/Linux systems \ or /
+path_separator = '/';  % change for Windows/Linux systems \ or /
 
 % Grab just the names of just the edf files
 files = dir(folder);
 ext_files = {};
 for find = 1:length(files)
     fname = files(find).name;
-    fname = folder + path_separator + fname;
+    %fname = folder + path_separator + fname;
+    fname = fullfile(folder, fname);
+    disp(fname)
     if (contains(fname, extension))
         ext_files{end+1} = fname;
     end
