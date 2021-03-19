@@ -22,7 +22,8 @@ function batchFilterICA(pt_data, outdir, EEGLabPath)
         % import the data into EEGlab
         EEG = pop_importdata('dataformat','array','nbchan',0,'data',record,'setname',pat_name,'srate',srate,'pnts',0,'xmin',0);
         % Subset the channels to the standard 1020 channels
-        cedName = fullfile(outdir, pat_name+".ced");
+        cedName = fullfile(outdir, pat_name+'.ced');
+     
         EEG = handleChannels(EEG, labels, cedName, EEGLabPath);
         % perform the actual ICA. Make sure you have the binICA files set
         % or else this will be very slow

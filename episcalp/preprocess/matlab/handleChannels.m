@@ -15,10 +15,11 @@ function EEG = handleChannels(EEG, labels, cedName, EEGLabPath)
     labels_clean = {};
     for lab = 1:size(labels,2)
         label = labels(lab);
-        label_clean = erase(erase(label,"Ref"), "EEG");
+        label_clean = erase(erase(label,'Ref'), 'EEG');
         labels_clean{lab, 1} = label_clean;
     end
     disp(labels_clean)
+    disp(cedName)
     writeCED(labels_clean, cedName);
     disp(cedName)
     cedNameChar = char(cedName);

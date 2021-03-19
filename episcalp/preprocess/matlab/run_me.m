@@ -1,12 +1,12 @@
-EEGLabPath = "/home/adam2392/Documents/eeglab2021.0"; % change this
+EEGLabPath = '/home/adam2392/Documents/eeglab2021.0'; % change this
 addpath(genpath(EEGLabPath))
 
 %folder = "D:/ScalpData/test_parallel/sourcedata/normal";  % change this
-folder = "/home/adam2392/hdd3/tuh_normal_vs_abnormal/sourcedata/normal";
-dataset = "tuh_normal_vs_abnormal";  % used to save the temporary files, not important
-extension = ".edf";
+folder = '/home/adam2392/hdd3/tuh_normal_vs_abnormal/sourcedata/normal';
+dataset = 'tuh_normal_vs_abnormal';  % used to save the temporary files, not important
+extension = '.edf';
 %outputdir = "D:/ScalpData/test_parallel/outdir";  % change this
-outputdir = "/home/adam2392/hdd3/tuh_normal_vs_abnormal/derivatives/ICA/normal";
+outputdir = '/home/adam2392/hdd3/tuh_normal_vs_abnormal/derivatives/ICA/normal';
 
 group_size=5; % chunk the data to make computation a little faster
 path_separator = "/";  % change for Windows/Linux systems \ or /
