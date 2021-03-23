@@ -16,16 +16,12 @@ files = dir(folder);
 ext_files = {};
 for find = 1:length(files)
     fname = files(find).name;
-    % check if we have already run the file
-    expected_name = strrep(fname, extension, '.set');
-    expected_path = fullfile(outputdir, expected_name);
-    if ~isfile(expected_path)
-        %fname = folder + path_separator + fname;
-        fname = fullfile(folder, fname);
-        disp(fname)
-        if (contains(fname, extension))
-            ext_files{end+1} = fname;
-        end
+    expected_name = 
+    %fname = folder + path_separator + fname;
+    fname = fullfile(folder, fname);
+    disp(fname)
+    if (contains(fname, extension))
+        ext_files{end+1} = fname;
     end
 end
 count = 1;
