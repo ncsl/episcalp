@@ -51,19 +51,19 @@ def convert_ica_to_bids(root, source_dir, bids_identifiers,
         freqs = ''  # function of line frequency and sampling freq
 
         # ICA pipeline filtered apriori
-        # update_dict = {
-        #     'SoftwareFilters': {
-        #         'notch filter': {
-        #             'order': '',
-        #             'freqs': freqs,
-        #         },
-        #         'band-pass filter': {
-        #             'l_freq': '',
-        #             'h_freq': '',
-        #         }
-        #     }
-        # }
-        # update_sidecar_json(sidecar_path, update_dict)
+        update_dict = {
+            'SoftwareFilters': {
+                'notch filter': {
+                    'order': '',
+                    'freqs': freqs,
+                },
+                'band-pass filter': {
+                    'l_freq': '',
+                    'h_freq': '',
+                }
+            }
+        }
+        update_sidecar_json(sidecar_path, update_dict)
 
         # update description.json
         descrip_path = BIDSPath(root=bids_path.root, suffix='dataset_description',
