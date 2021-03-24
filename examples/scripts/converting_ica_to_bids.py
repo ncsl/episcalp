@@ -48,18 +48,19 @@ def convert_ica_to_bids(root, source_dir, bids_identifiers,
         raw = read_raw_bids(bids_path)
         sfreq = raw.info['sfreq']
         line_freq = raw.info['line_freq']
-        freqs = ''  # function of line frequency and sampling freq
+        freqs = '[60]'  # function of line frequency and sampling freq
 
         # ICA pipeline filtered apriori
         update_dict = {
             'SoftwareFilters': {
                 'notch filter': {
-                    'order': '',
+                    'order': '2',
                     'freqs': freqs,
                 },
                 'band-pass filter': {
-                    'l_freq': '',
-                    'h_freq': '',
+                    'order': '2',
+                    'l_freq': '0.5',
+                    'h_freq': '90',
                 }
             }
         }
