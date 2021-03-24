@@ -72,7 +72,7 @@ def convert_ica_to_bids(root, source_dir, bids_identifiers,
         update_dict = {
             'DatasetType': 'derivative',
             'Name': 'EEGLab binICA',
-            'Version': '',  # include version used
+            'Version': '2021.0',  # include EEGLab version used, binICA is not versioned
             'Description': 'See README for more info. Automated ICA procedure was ran with binICA from '
                            'EEGLab and then saved as .set files. Preprocessing, such as basic filtering '
                            'was done. Detected ICA components were removed from the data as part of '
