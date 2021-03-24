@@ -5,7 +5,8 @@ from episcalp.bids.bids_conversion import write_epitrack_bids, append_original_f
 
 
 def convert_ica_to_bids(root, source_dir, bids_identifiers,
-                        montage="standard_1020", ext=".set", to_ext=".vhdr"):
+                        montage="standard_1020", ext=".set", to_ext=".vhdr",
+                        overwrite=False):
     datatype = 'eeg'
     suffix = 'eeg'
 
@@ -29,6 +30,10 @@ def convert_ica_to_bids(root, source_dir, bids_identifiers,
         bids_path = BIDSPath(**bids_identifiers)
 
         bids_path.directory.mkdir(exist_ok=True, parents=True)
+        if bids_path.fpath.exists() and not overwrite:
+            print(f'Skipping {bids_path} because it already exists.')
+            continue
+
         print(f'Converting {bids_path} to BIDS... of {fpath}')
         bids_path = write_epitrack_bids(
             source_path=fpath,
@@ -83,10 +88,11 @@ def convert_ica_to_bids(root, source_dir, bids_identifiers,
 if __name__ == "__main__":
     root = Path("D:/ScalpData/test_convert/derivatives/ICA")
     root = Path("/home/adam2392/hdd3/tuh_epileptic_abnormal_vs_normal_EEG/derivatives/ICA")
-    root = Path("/home/adam2392/hdd3/tuh_epilepsy_vs_normal/derivatives/ICA")
+    # root = Path("/home/adam2392/hdd3/tuh_epilepsy_vs_normal/derivatives/ICA")
 
+    overwrite = False
     source_dir = root / "sourcedata"
     bids_identifiers = {
         # "acquisition": "eeg"
     }
-    convert_ica_to_bids(root, source_dir, bids_identifiers)
+    convert_ica_to_bids(root, source_dir, bids_identifiers, overwrite=overwrite)
