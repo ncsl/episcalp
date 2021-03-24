@@ -45,9 +45,6 @@ def convert_ica_to_bids(root, source_dir, bids_identifiers,
 
         # update sidecar json
         sidecar_path = bids_path.copy().update(extension='.json')
-        raw = read_raw_bids(bids_path)
-        sfreq = raw.info['sfreq']
-        line_freq = raw.info['line_freq']
         freqs = '[60]'  # function of line frequency and sampling freq
 
         # ICA pipeline filtered apriori
@@ -81,7 +78,6 @@ def convert_ica_to_bids(root, source_dir, bids_identifiers,
                            'the automated procedure.'
         }
         update_sidecar_json(descrip_path, update_dict)
-        break
 
 
 if __name__ == "__main__":
