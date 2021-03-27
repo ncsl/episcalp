@@ -14,6 +14,13 @@ function labels_clean = clean_label_names(labels)
     labels_clean = labels;
     for i = 1:length(labels)
         label_strip = erase(erase(erase(labels(i),"EEG"), "Ref"), "REF");
+        
+        % some datasets have "LE" as the Reference channel
+        % possibly indicated left ear
+        if endsWith(label_strip, "LE")
+           label_strip = strrep(label_strip, "LE", "");
+        end
+        
         ind = find(strcmp(labels_uppercase,label_strip), 1);
         if ~isempty(ind)
             label_case = labels_lowercase(ind);
