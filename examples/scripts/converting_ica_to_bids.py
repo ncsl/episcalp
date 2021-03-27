@@ -87,8 +87,8 @@ def convert_ica_to_bids(root, source_dir, bids_identifiers,
 
 if __name__ == "__main__":
     root = Path("D:/ScalpData/test_convert/derivatives/ICA")
-    root = Path("/home/adam2392/hdd3/tuh_epileptic_abnormal_vs_normal_EEG/derivatives/ICA")
-    # root = Path("/home/adam2392/hdd3/tuh_epilepsy_vs_normal/derivatives/ICA")
+    # root = Path("/home/adam2392/hdd3/tuh_epileptic_abnormal_vs_normal_EEG/derivatives/ICA")
+    root = Path("/home/adam2392/hdd3/tuh_epilepsy_vs_normal/derivatives/ICA")
 
     overwrite = False
     source_dir = root / "sourcedata"

@@ -2,13 +2,13 @@ EEGLabPath = '/home/adam2392/Documents/eeglab2021.0'; % change this
 addpath(genpath(EEGLabPath))
 
 %folder = "D:/ScalpData/test_parallel/sourcedata/normal";  % change this
-folder = '/home/adam2392/hdd3/tuh_epilepsy_vs_normal/sourcedata/no_epilepsy';
-folder = '/home/adam2392/hdd3/tuh_epileptic_abnormal_vs_normal_EEG/sourcedata/abnormal/';
+folder = '/home/adam2392/hdd3/tuh_epilepsy_vs_normal/sourcedata/epilepsy';
+%folder = '/home/adam2392/hdd3/tuh_epileptic_abnormal_vs_normal_EEG/sourcedata/abnormal/';
 dataset = 'tuh_epilepsy_vs_normal';  % used to save the temporary files, not important
 extension = '.edf';
 %outputdir = "D:/ScalpData/test_parallel/outdir";  % change this
-outputdir = '/home/adam2392/hdd3/tuh_epilepsy_vs_normal/derivatives/ICA/no_epilepsy';
-outputdir = '/home/adam2392/hdd3/tuh_epileptic_abnormal_vs_normal_EEG/derivatives/ICA/abnormal/';
+outputdir = '/home/adam2392/hdd3/tuh_epilepsy_vs_normal/derivatives/ICA/sourcedata/epilepsy/';
+%outputdir = '/home/adam2392/hdd3/tuh_epileptic_abnormal_vs_normal_EEG/derivatives/ICA/sourcedata/abnormal/';
 
 group_size=5; % chunk the data to make computation a little faster
 path_separator = '/';  % change for Windows/Linux systems \ or /
@@ -24,7 +24,7 @@ for find = 1:length(files)
     if ~isfile(expected_path)
         %fname = folder + path_separator + fname;
         fname = fullfile(folder, fname);
-        %disp(strcat("About to run this file: ", fname))
+%         disp(strcat("About to run this file: ", fname))
         %disp(expected_path);
         if (contains(fname, extension))
             ext_files{end+1} = fname;
