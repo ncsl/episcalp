@@ -37,6 +37,8 @@ matplotlib = "*"
 seaborn = "*"
 pyprep = "*"
 scikit-learn = ">=0.24"
+xlrd = "*"
+openpyxl = "*"
 
 [requires]
 python_version = "3.8"
