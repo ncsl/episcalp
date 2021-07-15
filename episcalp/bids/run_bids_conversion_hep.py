@@ -6,7 +6,8 @@ from mne_bids.path import BIDSPath
 
 
 def convert_hep_to_bids():
-    root = Path("D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents - HEP Data")
+    root = Path(
+        "D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents - HEP Data")
     source_dir = root / "sourcedata" / "zip1"
 
     # define BIDS identifiers

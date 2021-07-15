@@ -6,12 +6,14 @@ from utils import update_participants_info
 
 from mne_bids import get_entity_vals
 
+
 def main():
     bids_root = Path(
         '/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/90Hz-10/')
     # bids_root = Path(
     #     '/Users/adam2392/Johns Hopkins/Patrick E Myers - scalp_jhu_bids/')
-    source_dir = Path('/Users/adam2392/Johns Hopkins/Patrick E Myers - scalp_jhu_bids/') / 'sourcedata'
+    source_dir = Path(
+        '/Users/adam2392/Johns Hopkins/Patrick E Myers - scalp_jhu_bids/') / 'sourcedata'
 
     record_id_map_fname = source_dir / 'jhu_pt_map.json'
     excel_metadata_fpath = source_dir / 'JHU-metadata_June2021.xlsx'
