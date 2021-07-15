@@ -10,36 +10,34 @@ def convert_hep_to_bids():
     source_dir = root / "sourcedata" / "zip1"
 
     # define BIDS identifiers
-    acquisition = "eeg"
     datatype = "eeg"
-    task = "monitor"
-    session = "original"
+    session = "original"  # either original or montaged
 
-    montage = "standard_1020"
+    # run for each session
     set_fpaths = [
         fpath
         for fpath in source_dir.glob("*.set")
-        if "original" in fpath.name
+        if session in fpath.name
     ]
     print(set_fpaths)
 
-    for fpath in set_fpaths:
+    # run BIDS conversion for each set of files
+    for idx, fpath in enumerate(set_fpaths):
         subject, run_id, _ = fpath.name.split("_")
         bids_kwargs = {
             "subject": subject,
             "session": session,
-            "task": task,
-            "acquisition": acquisition,
             "run": run_id,
             "datatype": datatype,
             "suffix": datatype
         }
         bids_path = BIDSPath(**bids_kwargs, root=root)
         bids_path = write_eztrack_bids(
-            source_fpath=fpath, bids_path=bids_path, line_freq=60, montage=montage,
+            source_fpath=fpath, bids_path=bids_path, line_freq=60,
             strong_anonymize=False
         )
 
+        # add original scan name to scans.tsv
         append_original_fname_to_scans(fpath.name, root, bids_path.basename)
 
 
