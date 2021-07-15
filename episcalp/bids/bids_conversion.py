@@ -127,6 +127,7 @@ def write_epitrack_bids(source_path,
         bids_path,
         overwrite=overwrite,
         verbose=verbose,
+        format="BrainVision"
         # **kwargs,
     )
     return bids_fpath
