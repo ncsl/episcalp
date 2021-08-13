@@ -4,6 +4,7 @@ from datetime import date, datetime
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
+from pathlib import Path
 
 turbo_colormap_data = np.array(
     [
@@ -371,6 +372,28 @@ def _apply_threshold(X, threshold, default_val=0.0):
     X = X.copy()
     X[X < threshold] = default_val
     return X
+
+
+def _get_feature_deriv_path(deriv_path, model_name):
+    deriv_dir = Path(deriv_path) / model_name / "radius1.25" / "monopolar"
+    if model_name == "sourcesink":
+        return  deriv_dir, ".npy"
+    elif model_name == "fragility":
+        return deriv_dir, ".npz"
+    else:
+        return deriv_dir, ".json"
+
+
+def subset_patients(patient_result_dict, include_subject_groups):
+    output_dict = patient_result_dict.copy()
+    for ptID in patient_result_dict.keys():
+        if int(ptID) > 200 and "epilepsy-abnormal" not in include_subject_groups:
+            del output_dict[ptID]
+        elif int(ptID) < 100 and "non-epilepsy" not in include_subject_groups:
+            del output_dict[ptID]
+        elif 100 < int(ptID) < 200 and "epilepsy-normal" not in include_subject_groups:
+            del output_dict[ptID]
+    return output_dict
 
 
 class NumpyEncoder(json.JSONEncoder):

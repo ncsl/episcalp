@@ -4,7 +4,9 @@ import os
 from pathlib import Path
 from typing import Dict
 
+
 import numpy as np
+from eztrack.io import DerivativeNumpy
 from joblib import cpu_count
 from sklearn.base import BaseEstimator
 from sklearn import preprocessing
@@ -16,7 +18,23 @@ from sklearn.metrics import (
     accuracy_score,
 )
 from sklearn.model_selection import GroupKFold, cross_validate
+from sample_code.features import (
+    calculate_entropy,
+    calculate_variance,
+    calculate_skew,
+    calculate_kurtosis,
+    calculate_kl_div,
+    calculate_distribution
+)
+from sample_code.utils import _get_feature_deriv_path
 
+feature_types = {
+    "entropy": calculate_entropy,
+    "variance": calculate_variance,
+    "skew": calculate_skew,
+    "kurtosis": calculate_kurtosis,
+    "kldiv": calculate_kl_div
+}
 
 # make jobs use half the CPU count
 num_cores = cpu_count() // 2
@@ -187,6 +205,44 @@ def tune_hyperparameters(
         master_scores.append(scores)
 
     return master_scores
+
+
+def generate_patient_features(deriv_path, model_name, features, subjects=None, verbose=True):
+    deriv_path = Path(deriv_path)
+    patient_result_dict = collections.defaultdict(list)
+
+    # get path to this specific feature and its extension used
+    feature_deriv_path, ext = _get_feature_deriv_path(deriv_path, model_name)
+    if subjects is None:
+        subjects = [
+            fpath.name for fpath in feature_deriv_path.glob("*") if fpath.is_dir()
+        ]
+    for sub in subjects:
+        if "sub" in sub:
+            sub = sub.split("-")[1]
+        feature_deriv_dir = Path(feature_deriv_path) / f"sub-{sub}"
+        if model_name == "sourcesink":
+            deriv_fname = f"sub-{sub}_ses-initialvisit_task-monitor_run-01_desc-ssindmatrix_eeg.npy"
+        elif model_name == "fragility":
+            deriv_fname = f"sub-{sub}_ses-initialvisit_task-monitor_run-01_desc-perturbmatrix_eeg.npy"
+        else:
+            return None
+        deriv_fpath = Path(feature_deriv_dir) / deriv_fname
+        if not deriv_fpath.exists():
+            deriv_fname = deriv_fname.replace("initialvisit", "awake")
+            deriv_fpath = Path(feature_deriv_dir) / deriv_fname
+        deriv = DerivativeNumpy(deriv_fpath)
+        deriv_arr = deriv.get_data()
+
+        dist = calculate_distribution(deriv_arr, True)
+
+        for feature in features:
+            feature_func = feature_types[feature]
+            feature_fname = f"{deriv_fname.split('_desc')[0]}_desc-{feature}_eeg.npy"
+            feature_fpath = Path(feature_deriv_dir) / feature_fname
+            val = feature_func(dist)
+            np.save(feature_fpath, val)
+    return None
 
 
 def load_patient_dict(deriv_path, feature_name, task=None, subjects=None, verbose=True):
