@@ -3,6 +3,7 @@ import os
 import numpy as np
 from eztrack.io import DerivativeNumpy, DerivativeArray
 from scipy.stats import entropy, skew, kurtosis
+from sample_code.utils import _standard_lobes
 
 
 def calculate_distribution(arr, normalize=True):
@@ -41,3 +42,18 @@ def calculate_kl_div(dist):
     print(f"p: {p.shape}, q: {q.shape}")
     return entropy(p, q)
 
+
+def get_spike_rate(spike_dict):
+    return spike_dict['total']
+
+
+def get_max_spike_rate(spike_dict):
+    total = spike_dict.pop('total')
+    return max(spike_dict.values())
+
+
+def get_lobe_spike_rate(spike_dict, lobe, separate=False):
+    lobe_dict = _standard_lobes(separate)
+    lobe_chs = [l.upper() for l in lobe_dict[lobe]]
+    lobe_rates = [rate for ch, rate in spike_dict.items() if ch.upper() in lobe_chs]
+    return np.mean(lobe_rates)

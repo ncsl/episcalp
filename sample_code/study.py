@@ -24,7 +24,10 @@ from sample_code.features import (
     calculate_skew,
     calculate_kurtosis,
     calculate_kl_div,
-    calculate_distribution
+    calculate_distribution,
+    get_spike_rate,
+    get_max_spike_rate,
+    get_lobe_spike_rate
 )
 from sample_code.utils import _get_feature_deriv_path
 
@@ -33,7 +36,13 @@ feature_types = {
     "variance": calculate_variance,
     "skew": calculate_skew,
     "kurtosis": calculate_kurtosis,
-    "kldiv": calculate_kl_div
+    "kldiv": calculate_kl_div,
+    "total_spike_rate": get_spike_rate,
+    "max_spike_rate": get_max_spike_rate,
+    "frontal_lobe_spike_rate": get_lobe_spike_rate,
+    "temporal_lobe_spike_rate": get_lobe_spike_rate,
+    "parietal_lobe_spike_rate": get_lobe_spike_rate,
+    "occipital_lobe_spike_rate": get_lobe_spike_rate,
 }
 
 # make jobs use half the CPU count
@@ -243,6 +252,38 @@ def generate_patient_features(deriv_path, model_name, features, subjects=None, v
             val = feature_func(dist)
             np.save(feature_fpath, val)
     return None
+
+
+def generate_spike_feature(spike_patient_dict, feature_name, include_subject_groups, extra_params=None):
+    unformatted_X = []
+    y = []
+    pt_ids = []
+    groups = []
+    feature_func = feature_types[feature_name]
+    for subject_id, spike_dict in spike_patient_dict.items():
+        if extra_params is not None:
+            x = feature_func(spike_dict, **extra_params)
+        else:
+            x = feature_func(spike_dict)
+        if int(subject_id) < 100 and 'non-epilepsy' in include_subject_groups.keys():
+            unformatted_X.append(x)
+            y.append(include_subject_groups['non-epilepsy'])
+            pt_ids.append(subject_id)
+            groups.append(0)
+        elif int(subject_id) > 200 and 'epilepsy-abnormal' in include_subject_groups.keys():
+            unformatted_X.append(x)
+            y.append(include_subject_groups['epilepsy-abnormal'])
+            pt_ids.append(subject_id)
+            groups.append(2)
+        elif 100 < int(subject_id) < 200 and 'epilepsy-normal' in include_subject_groups.keys():
+            unformatted_X.append(x)
+            y.append(include_subject_groups['epilepsy-normal'])
+            pt_ids.append(subject_id)
+            groups.append(1)
+    y_arr = np.array(y).flatten()
+    groups_arr = np.array(groups).flatten()
+    pt_ids_arr = np.array(pt_ids).flatten()
+    return unformatted_X, y_arr, groups_arr, pt_ids_arr
 
 
 def load_patient_dict(deriv_path, feature_name, task=None, subjects=None, verbose=True):
