@@ -1,5 +1,131 @@
+from typing import Union, List
 import logging as logger
 import mne
+import json
+import os
+from mne_bids.tsv_handler import _to_tsv, _from_tsv
+from mne_bids.utils import _write_json
+
+
+def update_participants_info(
+    root, subject, key, value, description=None, levels=None, units=None
+):
+    """Update ``participants`` tsv in BIDS dataset for a specific subject.
+
+    Will also update the corresponding ``participants.json`` file if the key
+    does not exist yet. Will try to add a ``description``, ``levels`` and ``units``
+    of the column to the JSON file.
+
+    Parameters
+    ----------
+    root : str | pathlib.Path
+    subject : str
+        The subject of the BIDS dataset. Corresponds to ``sub-`` entity.
+    key : str
+        The column name of the ``participants.tsv`` file. If it does not
+        exist in the file, it will be created.
+    value : str
+        The value for the participant's column key to set.
+    description : str
+        The description of the column key. Added to the ``participants.json``
+        if the column ``key`` does not exist yet.
+    levels : dict
+    units : str
+    """
+    participants_json_fname = os.path.join(root, "participants.json")
+    participants_tsv_fname = os.path.join(root, "participants.tsv")
+
+    # don't overwrite existing data
+    with open(participants_json_fname, "r") as fin:
+        participant_field = json.load(fin)
+
+    # check is key inside here
+    if key in participant_field:
+        participant_field_key = participant_field[key]
+    else:
+        participant_field[key] = dict()
+        participant_field_key = participant_field[key]
+
+    if description is not None:
+        participant_field_key.update(
+            {
+                "Description": description,
+            }
+        )
+
+    if levels is not None:
+        participant_field_key.update({"Levels": levels})
+    if units is not None:
+        participant_field_key.update({"Units": units})
+
+    if not subject.startswith("sub-"):
+        subject = f"sub-{subject}"
+
+    participant_field[key] = participant_field_key
+    _write_json(
+        participants_json_fname, participant_field, overwrite=True, verbose=False
+    )
+    _update_sidecar_tsv_byname(
+        participants_tsv_fname, subject, key, value, index_name="participant_id"
+    )
+
+
+def _update_sidecar_tsv_byname(
+    sidecar_fname: str,
+    name: Union[List, str],
+    colkey: str,
+    val: str,
+    allow_fail=False,
+    index_name="name",
+    verbose=False,
+):
+    """Update a sidecar JSON file with a given key/value pair.
+
+    Parameters
+    ----------
+    sidecar_fname : str
+        Full name of the data file
+    name : str
+        The name of the row in column "name"
+    colkey : str
+        The lower-case column key in the sidecar TSV file. E.g. "type"
+    val : str
+        The corresponding value to change to in the sidecar JSON file.
+    """
+    # convert to lower case and replace keys that are
+    colkey = colkey.lower()
+
+    if isinstance(name, list):
+        names = name
+    else:
+        names = [name]
+
+    # load in sidecar tsv file
+    sidecar_tsv = _from_tsv(sidecar_fname)
+
+    for name in names:
+        # replace certain apostrophe in Windows vs Mac machines
+        name = name.replace("’", "'")
+
+        if allow_fail:
+            if name not in sidecar_tsv[index_name]:
+                warnings.warn(
+                    f"{name} not found in sidecar tsv, {sidecar_fname}. Here are the names: {sidecar_tsv['name']}"
+                )
+                continue
+
+        # get the row index
+        row_index = sidecar_tsv[index_name].index(name)
+
+        # write value in if column key already exists,
+        # else write "n/a" in and then adjust matching row
+        if colkey in sidecar_tsv.keys():
+            sidecar_tsv[colkey][row_index] = val
+        else:
+            sidecar_tsv[colkey] = ["n/a"] * len(sidecar_tsv[index_name])
+            sidecar_tsv[colkey][row_index] = val
+
+    _to_tsv(sidecar_tsv, sidecar_fname)
 
 
 def _channel_text_scrub(raw: mne.io.BaseRaw):
@@ -24,7 +150,8 @@ def _channel_text_scrub(raw: mne.io.BaseRaw):
         # hard coded replacement rules
         # label = str(label).replace("POL ", "").upper()
         label = str(label).replace("POL", "").upper()
-        label = label.replace("EEG", "").replace("-REF", "")  # .replace("!","1")
+        label = label.replace("EEG", "").replace(
+            "-REF", "")  # .replace("!","1")
 
         # replace "Grid" with 'G' label
         label = label.replace("GRID", "G")
@@ -71,7 +198,8 @@ def bids_preprocess_raw(raw, bids_path, montage):
     if acquisition in ["seeg", "ecog", "eeg"]:
         logger.info(f"Setting channel types to: {acquisition}")
         raw.set_channel_types(
-            {raw.ch_names[i]: acquisition for i in mne.pick_types(raw.info, eeg=True)}
+            {raw.ch_names[i]: acquisition for i in mne.pick_types(
+                raw.info, eeg=True)}
         )
 
     # reformat channel text if necessary

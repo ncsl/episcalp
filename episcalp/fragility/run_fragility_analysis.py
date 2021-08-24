@@ -93,6 +93,7 @@ def run_row_analysis(
         )
 
 
+
 def run_analysis(
     bids_path,
     reference="monopolar",
@@ -224,13 +225,13 @@ def run_analysis(
     )
 
 
+
 def run_post_analysis(deriv_path=None, subject=None, features=None):
     if subject is not None:
         subjects = [subject]
     else:
         subjects = None
     generate_patient_features(deriv_path, "fragility", features, subjects=subjects, verbose=True)
-
 
 def main():
     bids_root = Path(
