@@ -12,6 +12,9 @@ from eztrack.utils import logger
 
 import sys
 import os
+
+from sample_code.study import generate_patient_features
+
 sys.path.append('../../')
 sys.path.append('./episcalp')
 print(os.getcwd())
@@ -76,6 +79,19 @@ def run_row_analysis(
             title=fig_basename,
             figure_fpath=(figures_path / fig_basename),
         )
+        fig_basename = fig_basename.replace(".pdf", "_topomap.pdf")
+        pert_deriv.plot_topomap(
+            # soz_chs=resected_chs,
+            cbarlabel="Fragility",
+            cmap="turbo",
+            # soz_chs=soz_chs,
+            # figsize=(10, 8),
+            # fontsize=12,
+            # vmax=0.8,
+            title=fig_basename,
+            figure_fpath=(figures_path / fig_basename),
+        )
+
 
 
 def run_analysis(
@@ -88,6 +104,7 @@ def run_analysis(
     overwrite=False,
     plot_heatmap=True,
     plot_raw=True,
+    extra_channels=None,
     **model_params,
 ):
     subject = bids_path.subject
@@ -116,6 +133,9 @@ def run_analysis(
         bids_path, reference=reference, rereference=rereference,
          resample_sfreq=resample_sfreq, verbose=verbose
     )
+    if extra_channels:
+        drop_chs = [ec for ec in extra_channels if ec in raw.ch_names]
+        raw.info['bads'].extend(drop_chs)
 
     # use the same basename to save the data
     raw.drop_channels(raw.info["bads"])
@@ -204,6 +224,14 @@ def run_analysis(
         overwrite=overwrite,
     )
 
+
+
+def run_post_analysis(deriv_path=None, subject=None, features=None):
+    if subject is not None:
+        subjects = [subject]
+    else:
+        subjects = None
+    generate_patient_features(deriv_path, "fragility", features, subjects=subjects, verbose=True)
 
 def main():
     bids_root = Path(
