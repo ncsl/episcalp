@@ -16,6 +16,7 @@ def run_spike_analysis(
     reference='monopolar',
     fill=True,
     prune=True,
+    save_json=True,
     **model_params,
 ):
     # get the root derivative path
@@ -54,8 +55,10 @@ def run_spike_analysis(
     total_spike_rate = sum(spike_counts.values()) / (n_chs * mins)  # normalizing by total time and number of channels
     spike_rates['total'] = total_spike_rate
 
-    with open(output_fpath, 'w+') as fid:
-        json.dump(spike_rates, fid, indent=4)
+    if save_json:
+        with open(output_fpath, 'w+') as fid:
+            json.dump(spike_rates, fid, indent=4)
+    return spike_rates
 
 
 def _count_spikes(spike_list):

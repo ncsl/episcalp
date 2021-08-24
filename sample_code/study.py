@@ -27,7 +27,8 @@ from sample_code.features import (
     calculate_distribution,
     get_spike_rate,
     get_max_spike_rate,
-    get_lobe_spike_rate
+    get_lobe_spike_rate,
+    get_slowing_count
 )
 from sample_code.utils import _get_feature_deriv_path
 
@@ -43,6 +44,7 @@ feature_types = {
     "temporal_lobe_spike_rate": get_lobe_spike_rate,
     "parietal_lobe_spike_rate": get_lobe_spike_rate,
     "occipital_lobe_spike_rate": get_lobe_spike_rate,
+    'total_outlier_windows': get_slowing_count,
 }
 
 # make jobs use half the CPU count
@@ -265,6 +267,35 @@ def generate_spike_feature(spike_patient_dict, feature_name, include_subject_gro
             x = feature_func(spike_dict, **extra_params)
         else:
             x = feature_func(spike_dict)
+        if int(subject_id) < 100 and 'non-epilepsy' in include_subject_groups.keys():
+            unformatted_X.append(x)
+            y.append(include_subject_groups['non-epilepsy'])
+            pt_ids.append(subject_id)
+            groups.append(0)
+        elif int(subject_id) > 200 and 'epilepsy-abnormal' in include_subject_groups.keys():
+            unformatted_X.append(x)
+            y.append(include_subject_groups['epilepsy-abnormal'])
+            pt_ids.append(subject_id)
+            groups.append(2)
+        elif 100 < int(subject_id) < 200 and 'epilepsy-normal' in include_subject_groups.keys():
+            unformatted_X.append(x)
+            y.append(include_subject_groups['epilepsy-normal'])
+            pt_ids.append(subject_id)
+            groups.append(1)
+    y_arr = np.array(y).flatten()
+    groups_arr = np.array(groups).flatten()
+    pt_ids_arr = np.array(pt_ids).flatten()
+    return unformatted_X, y_arr, groups_arr, pt_ids_arr
+
+
+def generate_slowing_features(slowing_patient_dict, feature_name, include_subject_groups):
+    unformatted_X = []
+    y = []
+    pt_ids = []
+    groups = []
+    feature_func = feature_types[feature_name]
+    for subject_id, slowing_dict in slowing_patient_dict.items():
+        x = feature_func(slowing_dict)
         if int(subject_id) < 100 and 'non-epilepsy' in include_subject_groups.keys():
             unformatted_X.append(x)
             y.append(include_subject_groups['non-epilepsy'])

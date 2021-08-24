@@ -57,3 +57,9 @@ def get_lobe_spike_rate(spike_dict, lobe, separate=False):
     lobe_chs = [l.upper() for l in lobe_dict[lobe]]
     lobe_rates = [rate for ch, rate in spike_dict.items() if ch.upper() in lobe_chs]
     return np.mean(lobe_rates)
+
+
+def get_slowing_count(slowing_dict):
+    total_wins = []
+    [total_wins.extend(vals) for vals in slowing_dict.values()]
+    return len(total_wins)
