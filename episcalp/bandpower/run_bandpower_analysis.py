@@ -12,6 +12,7 @@ from scipy.integrate import simps
 from scipy.fft import rfft, rfftfreq, irfft
 import matplotlib.pyplot as plt
 
+from episcalp.utils.montage import set_bipolar_montage, get_ch_renaming_map
 from episcalp.utils.utils import compute_sample_points
 from sample_code.utils import _standard_channels
 
@@ -21,6 +22,7 @@ def run_bandpass_analysis(
     band_dict,
     winsize_sec,
     stepsize_sec,
+    period_tolerance_sec,
     deriv_path,
     reference,
     threshold: int = 3,
@@ -28,14 +30,27 @@ def run_bandpass_analysis(
     verbose: bool = False,
 ):
     subject = bids_path.subject
-    raw = read_raw_bids(bids_path)
+    extra_params = {}
+    if reference == "bipolar":
+        extra_params.update({"preload": True})
+    raw = read_raw_bids(bids_path, extra_params)
+    ch_names = raw.ch_names
+    ch_remap = get_ch_renaming_map(ch_names, _standard_channels(True))
+    raw = raw.rename_channels(ch_remap)
+    if verbose:
+        print(f"Original channel names: {ch_names}")
+        print(f"New channel names: {raw.ch_names}")
     ntimes = raw.n_times
     nchs = len(raw.ch_names)
-    ch_names = raw.ch_names
+
     sfreq = raw.info["sfreq"]
+    if reference == "bipolar":
+        raw = set_bipolar_montage(raw, "bipolar_longitudinal")
+    ch_names = raw.ch_names
 
     winsize = winsize_sec * int(sfreq)
     stepsize = stepsize_sec * int(sfreq)
+    period_tolerance = period_tolerance_sec * int(sfreq)
 
     sample_points = compute_sample_points(ntimes, winsize, stepsize)
     #sample_points = [sample_points[0]]
@@ -49,6 +64,7 @@ def run_bandpass_analysis(
             bandpower_dict[ch][band_name] = []
 
     mean_ptp_amplitude_dict = collections.defaultdict(list)
+    mean_wave_period_dict = collections.defaultdict(list)
 
     for (start_samp, end_samp) in sample_points:
         data = raw.get_data(start=start_samp, stop=end_samp)
@@ -57,8 +73,10 @@ def run_bandpass_analysis(
             for band_name in band_names:
                 bandpower_dict[ch][band_name].append(power_dict[band_name][ch])
         ptp_amplitude_dict = _compute_ptp_amplitude_window(data, sfreq, ch_names)
+        wave_period_dict = _compute_wave_period_window(data, sfreq, ch_names)
         for ch in ch_names:
             mean_ptp_amplitude_dict[ch].append(ptp_amplitude_dict[ch])
+            mean_wave_period_dict[ch].append(wave_period_dict[ch])
 
     deriv_dir = deriv_path / "band-power" / f"winsize-{winsize}" / f"stepsize-{stepsize}" / reference / f"sub-{subject}"
     deriv_dir.mkdir(exist_ok=True, parents=True)
@@ -78,11 +96,22 @@ def run_bandpass_analysis(
         with open(ptp_amplitude_fpath, 'w+') as fid:
             json.dump(mean_ptp_amplitude_dict, fid, indent=4)
 
-    outlier_window_dict_ = _determine_outlier_windows(bandpower_dict, threshold)
-    [print(f"{key}: {value}") for key, value in outlier_window_dict_.items()]
+        wave_period_fname = Path(bandpower_fname.name.replace("bandpower", "waveperiod"))
+        wave_period_fpath = deriv_dir / wave_period_fname
 
-    outlier_window_dict = _confirm_outlier_window_peaks(outlier_window_dict_, mean_ptp_amplitude_dict)
-    [print(f"{key}: {value}") for key, value in outlier_window_dict.items()]
+        with open(wave_period_fpath, 'w+') as fid:
+            json.dump(mean_wave_period_dict, fid, indent=4)
+
+    outlier_window_dict_ = _determine_outlier_windows(bandpower_dict, threshold)
+    if verbose:
+        print("Delta band outlier windows")
+        [print(f"{key}: {value}") for key, value in outlier_window_dict_.items()]
+
+    outlier_window_dict = _confirm_outlier_window_peaks(outlier_window_dict_, mean_ptp_amplitude_dict,
+                                                        mean_wave_period_dict, period_tolerance)
+    if verbose:
+        print("Outlier windows that pass waveform criterion")
+        [print(f"{key}: {value}") for key, value in outlier_window_dict.items()]
 
     outlier_windows = _convert_outlier_windows_to_samplepoints(outlier_window_dict, sample_points)
 
@@ -91,19 +120,31 @@ def run_bandpass_analysis(
     with open(outlier_fpath, 'w+') as fid:
         json.dump(outlier_windows, fid, indent=4)
 
-    outlier_windows_full = _fill_chs(outlier_windows)
+    outlier_windows_full = _fill_chs(outlier_windows, ch_names)
     outlier_fname = Path(f"{bids_path.basename.split('_eeg')[0]}_outliersfull.json")
     outlier_fpath = deriv_dir / outlier_fname
     with open(outlier_fpath, 'w+') as fid:
         json.dump(outlier_windows_full, fid, indent=4)
 
-    return outlier_window_dict
+    tirda_window_dict = _filter_for_tirda(outlier_window_dict, reference)
+
+    if verbose:
+        print("Windows that pass tirda criterion")
+        [print(f"{key}: {value}") for key, value in tirda_window_dict.items()]
+
+    tirda_windows = _convert_outlier_windows_to_samplepoints(tirda_window_dict, sample_points)
+    tirda_windows_full = _fill_chs(tirda_windows, ch_names)
+    tirda_fname = Path(f"{bids_path.basename.split('_eeg')[0]}_tirdafull.json")
+    tirda_fpath = deriv_dir / tirda_fname
+    with open(tirda_fpath, 'w+') as fid:
+        json.dump(tirda_windows_full, fid, indent=4)
+
+    return tirda_window_dict
 
 
-def _fill_chs(sparse_dict):
+def _fill_chs(sparse_dict, ch_names):
     full_dict = dict()
-    standard_channels = _standard_channels()
-    for ch in standard_channels:
+    for ch in ch_names:
         full_dict[ch] = sparse_dict.get(ch.upper(), [])
     return full_dict
 
@@ -123,6 +164,15 @@ def _compute_ptp_amplitude_window(data, sfreq, ch_names):
         ptp_amplitude = _ptp_amplitude(ch_data, sfreq)
         amplitude_dict[ch] = ptp_amplitude
     return amplitude_dict
+
+
+def _compute_wave_period_window(data, sfreq, ch_names):
+    period_dict = dict()
+    for idx, ch in enumerate(ch_names):
+        ch_data = data[idx, :]
+        wave_period = _wave_period(ch_data, sfreq)
+        period_dict[ch] = wave_period
+    return period_dict
 
 
 def _bandpower(data, sf, band, ch_names):
@@ -183,6 +233,14 @@ def _ptp_amplitude(ch_data, sfreq):
     return ptp_amplitudes
 
 
+def _wave_period(ch_data, sfreq):
+    delta_data = _get_delta_activity(ch_data, sfreq)
+    peaks, peaks_properties = sc.signal.find_peaks(delta_data)
+
+    periods = [int(j-i) for i, j in zip(peaks[:-1], peaks[1:])]
+    return periods
+
+
 def _get_delta_activity(data, sfreq):
     N = len(data)
     yf = rfft(data)
@@ -210,7 +268,7 @@ def _determine_outlier_windows(bandpower_dict, threshold):
     return outlier_window_dict
 
 
-def _confirm_outlier_window_peaks(window_dict, amplitude_dict):
+def _confirm_outlier_window_peaks(window_dict, amplitude_dict, period_dict, period_std):
     confirmed_window_dict = collections.defaultdict(list)
     for chname, windows in window_dict.items():
         for window in windows:
@@ -220,10 +278,32 @@ def _confirm_outlier_window_peaks(window_dict, amplitude_dict):
             else:
                 window_peaks = window_peaks_.copy()
             mean_amplitude = np.mean(window_peaks)
-            std_amplitude = np.std(window_peaks)
-            if 50 < mean_amplitude < 100 and std_amplitude < 50:
+            window_periods = period_dict[chname][window]
+            std_periods = np.std(window_periods)
+            if 50 < mean_amplitude < 100 and std_periods < period_std:
                 confirmed_window_dict[chname].append(window)
     return confirmed_window_dict
+
+
+def _filter_for_tirda(window_dict, reference):
+    tirda_dict = collections.defaultdict(list)
+    inverted_window_dict = _invert_window_dict(window_dict)
+    tirda_combinations = _get_tirda_combinations(reference)
+    for win, ch_list in inverted_window_dict.items():
+        tirda = False
+        for combination in tirda_combinations:
+            if all(c in ch_list for c in combination):
+                tirda = True
+        if tirda:
+            [tirda_dict[ch].append(win) for ch in ch_list]
+    return tirda_dict
+
+
+def _invert_window_dict(window_dict):
+    inverted_dict = collections.defaultdict(list)
+    for ch, windows in window_dict.items():
+        [inverted_dict[win].append(ch) for win in windows]
+    return inverted_dict
 
 
 def _convert_outlier_windows_to_samplepoints(outlier_window_dict, sample_points):
@@ -233,10 +313,23 @@ def _convert_outlier_windows_to_samplepoints(outlier_window_dict, sample_points)
     return sample_point_dict
 
 
+def _get_tirda_combinations(reference):
+    if reference == "bipolar":
+        combinations = [['F7-T3', 'T3-T5', 'T5-O1'], ['F8-T4', 'T4-T6', 'T6-O2']]
+        return combinations
+    left_temporal_channels = ['T3', 'T5']
+    left_additional_channels = ['C3', 'F7', 'O1', 'P3']
+    right_temporal_channels = ['T4', 'T6']
+    right_additional_channels = ['C4', 'F8', 'O2', 'P4']
+    tirda_left = [left_temporal_channels + [lac] for lac in left_additional_channels]
+    tirda_right = [right_temporal_channels + [rac] for rac in right_additional_channels]
+    return tirda_left + tirda_right
+
+
 if __name__ == "__main__":
     root = Path("D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents/40Hz-30")
     subjects = get_entity_vals(root, 'subject')
-    #subjects = [subjects[0]]
+    subjects = [subjects[83]]
     for subject in subjects:
         bids_entities = {
             "subject": subject,
@@ -254,15 +347,15 @@ if __name__ == "__main__":
             bids_path = bids_path_.match()
         bids_path = bids_path[0]
         band_dict = {
-            "beta": [13, 30],
-            "alpha": [8, 12],
-            "theta": [4, 7],
-            "delta": [1, 3]
+            "delta": [1, 4]
         }
-        winsize = 5
+        # size in seconds
+        winsize = 6
         stepsize = 1
+        period_tolerance = 0.5
         deriv_path = root / "derivatives"
-        out_dict = run_bandpass_analysis(bids_path, band_dict, winsize, stepsize, deriv_path, "monopolar",
-                                         save_intermed=False)
+        reference = "bipolar"
+        out_dict = run_bandpass_analysis(bids_path, band_dict, winsize, stepsize, period_tolerance, deriv_path, reference,
+                                         save_intermed=True, verbose=True)
         #print(out_dict)
 
