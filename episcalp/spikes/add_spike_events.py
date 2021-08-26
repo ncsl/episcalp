@@ -29,30 +29,14 @@ def add_spike_events(bids_root, spike_root, ignore_subjects=None, **bids_kwargs)
         spike_fpath = Path(spike_root) / f"sub-{sub}" / f"{bids_name}_spikes.lay"
         raw_persyst = mne.io.read_raw_persyst(spike_fpath)
 
-        # Duration for spikes is for some reason encoded in the description and not in the duration section
-        # Iterate and move the duration to the correct place
-        annotations = raw_persyst.annotations
-        num_comments = len(annotations)
-        onsets = np.zeros(num_comments, float)
-        durations = np.zeros(num_comments, float)
-        descriptions = [''] * num_comments
-        for ind, annot in enumerate(annotations):
-            onsets[ind] = annot.get('onset', 0)
-            description_ = annot.get('description', '')
-            if 'spike' in description_:
-                spike, ch, duration = description_.split(" ")
-                durations[ind] = float(duration)
-                description = f"{spike} {_fix_channel_name(ch)}"
-                descriptions[ind] = description
-            else:
-                descriptions[ind] = description_
-        # Add correct annotations to the base raw object
-        annotations_ = mne.Annotations(onsets, durations, descriptions)
-        raw_base.set_annotations(annotations_)
-
         # Write these annotations out to an events tsv file
         events_fpath = bids_path.copy().update(suffix='events', extension='.tsv')
-        events, events_id = mne.events_from_annotations(raw_base)
+
+        annotations_, num_comments, onsets, descriptions, durations = _create_spike_events(raw_persyst)
+        raw_persyst.set_annotations(annotations_)
+
+        # Write these annotations out to an events tsv file
+        events, events_id = mne.events_from_annotations(raw_persyst)
 
         values = np.zeros(num_comments, float)
         for ind, description in enumerate(descriptions):
@@ -68,7 +52,38 @@ def add_spike_events(bids_root, spike_root, ignore_subjects=None, **bids_kwargs)
                                 ('value', values),
                                 ('sample', onsets)])
 
+
         _write_tsv(events_fpath, tsv_data, overwrite=False)
+
+
+def _create_spike_events(raw_persyst):
+    sfreq = raw_persyst.info['sfreq']
+    # Duration for spikes is for some reason encoded in the description and not in the duration section
+    # Iterate and move the duration to the correct place
+    annotations = raw_persyst.annotations
+    num_comments = len(annotations)
+    onsets = np.zeros(num_comments, float)
+    durations = np.zeros(num_comments, float)
+    descriptions = [''] * num_comments
+    for ind, annot in enumerate(annotations):
+        description_ = annot.get('description', '')
+        if 'spike ' in description_:
+            onsets[ind] = annot.get('onset', 0)
+            #description_ = annot.get('description', '')
+
+            spike_packet = description_.split(" ")
+            if len(spike_packet) == 3:
+                spike, ch, duration = spike_packet
+                numeric_filter = filter(str.isdigit, duration)
+                durations[ind] = float("".join(numeric_filter))
+                description = f"{spike} {_fix_channel_name(ch)}"
+                descriptions[ind] = description
+        #else:
+        #    descriptions[ind] = description_
+    onsets, durations, descriptions = _filter_empty(onsets, durations, descriptions)
+    # Add correct annotations to the base raw object
+    annotations_ = mne.Annotations(onsets, durations, descriptions)
+    return annotations_, num_comments, onsets, descriptions, durations
 
 
 def _fix_channel_name(ch_name):
@@ -78,6 +93,19 @@ def _fix_channel_name(ch_name):
         if base_ch.upper() == ch.upper():
             base_ch = ch
     return f"{base_ch}-{ref_ch}"
+
+
+def _filter_empty(onsets_, durations_, descriptions_):
+    onsets = []
+    durations = []
+    descriptions = []
+    for ind, (onset, duration, description) in enumerate(zip(onsets_, durations_, descriptions_)):
+        if onset == 0 and duration == 0 and description == '':
+            continue
+        onsets.append(onset)
+        durations.append(duration)
+        descriptions.append(description)
+    return np.array(onsets), np.array(durations), descriptions
 
 
 if __name__ == "__main__":
