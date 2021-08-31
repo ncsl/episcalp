@@ -36,9 +36,10 @@ function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_comp
                 EEG_ = EEG;
                 EEG_.data = EEG.data(:, window(1):window(2));
                 EEG_.times = EEG.times(window(1):window(2));
-                dirname = fullfile(dirname, "win-"+win);
-                mkdir(dirname);
-                EEG_ = filterICA(EEG_, true, brain_thresh, save_components, dirname, pat_name);
+                EEG_.pnts = window(2)-window(1)+1;
+                dirname_ = fullfile(dirname, "win-"+win);
+                mkdir(dirname_);
+                EEG_ = filterICA(EEG_, true, brain_thresh, save_components, dirname_, pat_name);
                 % extract the necessary information
                 pt_data = struct();
                 pt_data.data_filt = EEG_.data;
@@ -46,10 +47,10 @@ function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_comp
                 chanlocs = EEG_.chanlocs;
                 pt_data.labels = {chanlocs(:).labels}';
                 % save both a .mat file and an EEGlab file
-                results_fname = fullfile(dirname, pat_name+".mat");
+                results_fname = fullfile(dirname_, pat_name+".mat");
                 save(results_fname, 'pt_data');
                 set_fname = pat_name+".set";
-                EEG_ = pop_saveset( EEG_, 'filename', char(set_fname),'filepath',char(dirname));
+                EEG_ = pop_saveset( EEG_, 'filename', char(set_fname),'filepath',char(dirname_));
             end
                        
         else

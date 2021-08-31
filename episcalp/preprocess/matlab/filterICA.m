@@ -24,13 +24,13 @@ function output = filterICA(EEG, bin, brain_thresh, save_components, dirname, pa
         bin = true;
     end
     if (bin)
-%        try
+       try
             disp("trying binica")
             EEG = pop_runica(EEG,'icatype','binica', 'extended',1,'interupt','on');
-%        catch
-%            disp("using runica")
-%            EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
-%        end
+       catch
+           disp("using runica")
+           EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
+       end
     else
         EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
     end
