@@ -1,4 +1,4 @@
-function mat_fname = batchFilter(folder, dataset, files, oind)
+function mat_fname = batchFilter(folder, dataset, files, oind, filt_range, filt_order)
     % Extension will likely be ".edf" or ".bdf"
     % dataset should be a unique string, which can identify the output mat
     % file
@@ -29,8 +29,8 @@ function mat_fname = batchFilter(folder, dataset, files, oind)
         labels = clean_label_names(labels);
         standard_montage = make_standard1020_montage();
         [record, labels] = reduce_montage(record, labels, standard_montage);
-        record = trim_record(record, fs, 15*60);
-        record = filtSignals(record, fs, 0.5, 90, 2);
+        % record = trim_record(record, fs, 15*60);
+        record = filtSignals(record, fs, filt_range(1), filt_range(2), filt_order);
         hdr.label = labels;
         % Name the save file as same as source file with .mat extension
         pt_data.source_files{find} = fname;

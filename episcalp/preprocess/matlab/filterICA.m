@@ -1,7 +1,13 @@
-function output = filterICA(EEG, bin)
+function output = filterICA(EEG, bin, brain_thresh, save_components, dirname, pat_name)
     %% Filter the data via ICA
     % Input:
     %   EEG: the eeg object used in EEGLab
+    %   bin: boolean of whether to try to run the binary ica
+    %   brain_thresh: upper cutoff val of brain perc in ICLabel to remove
+    %   save_components: boolean of whether to save the individual
+    %   components
+    %   dirname: Path of directory to save the components
+    
     % Ouput:
     %   EEG: eeg object filtered
     
@@ -18,17 +24,34 @@ function output = filterICA(EEG, bin)
         bin = true;
     end
     if (bin)
-        try
+%        try
             disp("trying binica")
             EEG = pop_runica(EEG,'icatype','binica', 'extended',1,'interupt','on');
-        catch
-            disp("using runica")
-            EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
-        end
+%        catch
+%            disp("using runica")
+%            EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
+%        end
     else
         EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
     end
     % EEG = pop_runica(EEG);
+    reject = struct();
+    if (save_components)
+        suffix = '_full';
+        save_ICA_plots(EEG, dirname, suffix, 'png');
+        reject = EEG.reject;
+        
+        pt_data = struct();
+        pt_data.data_filt = EEG.data;
+        pt_data.fs = EEG.srate;
+        chanlocs = EEG.chanlocs;
+        pt_data.labels = {chanlocs(:).labels}';
+        
+        results_fname = fullfile(dirname, pat_name+"_full.mat");
+        save(results_fname, 'pt_data');
+        set_fname = pat_name+"_full.set";
+        EEG = pop_saveset( EEG, 'filename', char(set_fname),'filepath',char(dirname));
+    end
     
     %% Label the components using the ICLabel classifier
     EEG = iclabel(EEG);
@@ -38,7 +61,7 @@ function output = filterICA(EEG, bin)
     [m,n] = size(classifications);
     remove = [];
     for i = 1:m
-        if classifications(i,1) < 0.05 || ... % brain
+        if classifications(i,1) < brain_thresh || ... % brain
            classifications(i,2) > 0.9 || ... % muscle
            classifications (i,3) > 0.9 % eye
             remove = [remove; i]; % append this component to remove array
@@ -46,6 +69,15 @@ function output = filterICA(EEG, bin)
     end
     
     %% Remove the components flagged for removal
-    output = pop_subcomp(EEG, remove);
+    EEG = pop_subcomp(EEG, remove);
+    if (save_components)
+        % temporarily reset reject so that we can run ICLabel
+        reject_ = EEG.reject;
+        EEG.reject = structfun(@(x) [], reject, 'UniformOutput', false);
+        suffix = '_filtered';
+        save_ICA_plots(EEG, dirname, suffix, 'png');
+        EEG.reject = reject_;
+    end
+    output = EEG;
     return;
 end
