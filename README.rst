@@ -21,11 +21,17 @@ High-level Pipeline
 2. Raw data is stored in the `<bids_root>` of the data 
 directory. Raw data format is in BrainVision, or EDF format.
 
-3. ICA preprocessing is done in `eeglab`, where data is then output in the `.set` data format. 
+3. ICA preprocessing is done in `eeglab`, where data is then output in the `.set` data format.
+    episcalp/preprocess/matlab/run_me.m
 
 4. ICA preprocessed data will be written to `<bids_root>/derivatives/` folder using `mne_bids` copy_eeglab function to convert to BIDS.
+    episcalp/bids/run_bids_conversion_ica.py.
    
 5. Further analysis will either start from the raw data, or from the ICA preprocessed data.
+
+6. Feature generation code is stored in a subfolder of episcalp
+
+7. Scripts that assist in IO of intermediate results (specifically for notebooks) is located within sample_code
 
 Installation Guide
 ==================
