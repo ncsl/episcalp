@@ -189,10 +189,34 @@ def _channel_text_scrub(raw: mne.io.BaseRaw):
 
 
 def bids_preprocess_raw(raw, bids_path, montage):
-    """Preprocess raw channel names and types."""
+    """Preprocess raw channel names and types.
+
+    Will look for regular expression for DC, EMG, ECG, EOG
+    channels to set their channel types.
+
+    Will also set channel types to 'eeg', 'ecog', or 'seeg',
+    depending on the ``bids_path.acquisition`` parameter.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        The Raw object from MNE-Python
+    bids_path : BIDSPath
+        The BIDs path object.
+    montage : str
+        The scalp EEG montage
+
+    Returns
+    -------
+    raw : mne.io.Raw
+        The preprocessed Raw object.
+    """
     # acquisition in EZTrack is encoded for eeg,ecog,seeg
     acquisition = bids_path.acquisition
     datatype = bids_path.datatype
+    
+    # these are considered Reference channels in scalp EEG
+    ref_chs = ["A1", "A2", "M1", "M2"]
 
     # set channel types
     if acquisition in ["seeg", "ecog", "eeg"]:
@@ -226,8 +250,9 @@ def bids_preprocess_raw(raw, bids_path, montage):
     )
 
     if datatype == "eeg" and montage == "standard_1020":
-        ref_chs = ["A1", "A2", "M1", "M2"]
         for ch in ref_chs:
             if ch in raw.ch_names:
                 raw.set_channel_types({ch: "misc"})
+    elif montage != 'standard_1020':
+        raise RuntimeError(f'Montage {montage} isnt supported. Did you make a mistake, or did you mean standard_1020?')
     return raw

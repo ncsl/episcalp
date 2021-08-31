@@ -29,6 +29,7 @@ def _replace_ext(fname, ext, verbose=False):
 def write_epitrack_bids(source_path,
                         bids_path,
                         montage,
+                        format='EDF',
                         line_freq=60,
                         overwrite=False,
                         verbose=False):
@@ -42,7 +43,9 @@ def write_epitrack_bids(source_path,
     bids_path: BIDSPath
         BIDSPath object corresponding to the converted file.
     montage: str
-        Name of the montage for this recording
+        Name of the montage for this recording. E.g. standard_1020.
+    format : str
+        The format in which to output the dataset to.
     line_freq: int
         Line frequency for the data. Either 60 or 50.
     overwrite: bool
@@ -60,26 +63,13 @@ def write_epitrack_bids(source_path,
     datatype = bids_path.datatype
 
     if datatype is None:
-        if acquisition in ["seeg", "ecog"]:
-            datatype = "ieeg"
-        elif acquisition == "eeg":
-            datatype = "eeg"
+        raise RuntimeError('Please define datatype as "eeg", or "ieeg". '
+                           'It is None right now.')
 
     # Use mne-bids provided method to automatically determine which function to use to read in the
     # raw data
     extension = Path(source_path).suffix
     _reader = reader.get(extension)
-    if _reader is None:
-        # Checks to make sure the files are the correct type. Should never throw an error because of the way we structured
-        # the call to this function, but good to have explicit check in case we change the loading
-        if extension not in [".edf", ".vhdr"]:
-            msg = (
-                f"Attempted to upload a recording file of type {extension}. Only EDF (.edf) or "
-                f"BrainVision (.vhdr) are allowed."
-            )
-            logger.exception(msg)
-            raise ValueError(msg)
-        raise RuntimeError(f"Reading {source_path} is not supported yet...")
 
     # Read in raw data into an mne.io.Raw object
     raw = _reader(source_path)
@@ -88,6 +78,8 @@ def write_epitrack_bids(source_path,
     events, events_id = mne.events_from_annotations(raw, event_id=None)
     _events_id = events_id.copy()
     events_id = dict()
+
+    # remove all white spaces from event descriptions
     for key, val in _events_id.items():
         events_id[key.strip()] = val
     if np.array(events).size == 0:
@@ -120,14 +112,13 @@ def write_epitrack_bids(source_path,
         except Exception as e:
             logger.exception(e)
 
-    print(f"RAW CHANNELS: {raw.ch_names}")
     # Write the data to a file
     bids_fpath = write_raw_bids(
         raw,
         bids_path,
         overwrite=overwrite,
         verbose=verbose,
-        format="BrainVision"
+        format=format
         # **kwargs,
     )
     return bids_fpath

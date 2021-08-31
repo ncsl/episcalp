@@ -16,16 +16,30 @@ https://github.com/bids-standard/bids-specification/blob/master/src/04-modality-
 High-level Pipeline
 -------------------
 
-1. (Optional) If data is not in BIDS format yet, a BIDS conversion script should be carried out using `mne-bids`.
+We will consistently obtain data from manufacturing, or EDF format. These files however, are not
+sufficient for us to analyze the scalp EEG data. We require additional metadata, which will be
+facilitated by following the BIDS protocol.
 
-2. Raw data is stored in the `<bids_root>` of the data 
-directory. Raw data format is in BrainVision, or EDF format.
+1. Raw EDF data is initially to be stored in the `<bids_root>/sourcedata/` folder.
 
-3. ICA preprocessing is done in `eeglab`, where data is then output in the `.set` data format. 
+2. BIDS-conversion (source EDF data): Using `mne-bids`, we will convert data to BIDS format of the raw EEG data.
+
+3. (Temporary - Matlab Auto-ICA) Since auto-ICA currently sits in EEGLab with the MATLAB module, we can run auto-ICA on 
+the raw EDF data. During this, data is notch filtered, and bandpass filtered between 1-30 Hz (to remove
+higher frequency muscle artifacts). Then auto-ICA will try to remove stereotypical artifacts.
+   - ICA preprocessing is done in `eeglab`, where data is then output in the `.set` data format. 
+
+4. BIDS-conversion (ICA-cleaned EDF data): Using `mne-bids`, we will convert ICA-cleaned-data to BIDS format of the raw EEG data. Data
+will be stored in EDF format.
 
 4. ICA preprocessed data will be written to `<bids_root>/derivatives/` folder using `mne_bids` copy_eeglab function to convert to BIDS.
    
 5. Further analysis will either start from the raw data, or from the ICA preprocessed data.
+
+High level details that remain to be sorted out are the inclusion of Persyst spikes:
+
+- should we perform Persyst spike detection before, or after ICA cleaning?
+
 
 Installation Guide
 ==================
