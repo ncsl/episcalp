@@ -6,4 +6,6 @@ def run_post_analysis(deriv_path=None, subject=None, features=None):
         subjects = [subject]
     else:
         subjects = None
-    generate_patient_features(deriv_path, "sourcesink", features, subjects=subjects, verbose=True)
+    generate_patient_features(
+        deriv_path, "sourcesink", features, subjects=subjects, verbose=True
+    )

@@ -26,13 +26,15 @@ def _replace_ext(fname, ext, verbose=False):
     return fname + ext
 
 
-def write_epitrack_bids(source_path,
-                        bids_path,
-                        montage,
-                        format='EDF',
-                        line_freq=60,
-                        overwrite=False,
-                        verbose=False):
+def write_epitrack_bids(
+    source_path,
+    bids_path,
+    montage,
+    format="EDF",
+    line_freq=60,
+    overwrite=False,
+    verbose=False,
+):
     """
     Write a scalp eeg file to bids format.
 
@@ -63,8 +65,9 @@ def write_epitrack_bids(source_path,
     datatype = bids_path.datatype
 
     if datatype is None:
-        raise RuntimeError('Please define datatype as "eeg", or "ieeg". '
-                           'It is None right now.')
+        raise RuntimeError(
+            'Please define datatype as "eeg", or "ieeg". ' "It is None right now."
+        )
 
     # Use mne-bids provided method to automatically determine which function to use to read in the
     # raw data

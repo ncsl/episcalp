@@ -15,8 +15,8 @@ import os
 
 from sample_code.study import generate_patient_features
 
-sys.path.append('../../')
-sys.path.append('./episcalp')
+sys.path.append("../../")
+sys.path.append("./episcalp")
 print(os.getcwd())
 from episcalp.io import read_scalp_eeg
 
@@ -93,7 +93,6 @@ def run_row_analysis(
         )
 
 
-
 def run_analysis(
     bids_path,
     reference="monopolar",
@@ -113,8 +112,8 @@ def run_analysis(
     rereference = False
 
     # get the root derivative path
-    deriv_chain = Path("fragility") / f'radius{radius}' / reference / f"sub-{subject}"
-    figures_path = figures_path / 'figures' / deriv_chain
+    deriv_chain = Path("fragility") / f"radius{radius}" / reference / f"sub-{subject}"
+    figures_path = figures_path / "figures" / deriv_chain
     raw_figures_path = root / "derivatives" / "figures" / "raw" / f"sub-{subject}"
     deriv_path = deriv_path / deriv_chain
 
@@ -130,12 +129,15 @@ def run_analysis(
 
     # load in raw data
     raw = read_scalp_eeg(
-        bids_path, reference=reference, rereference=rereference,
-         resample_sfreq=resample_sfreq, verbose=verbose
+        bids_path,
+        reference=reference,
+        rereference=rereference,
+        resample_sfreq=resample_sfreq,
+        verbose=verbose,
     )
     if extra_channels:
         drop_chs = [ec for ec in extra_channels if ec in raw.ch_names]
-        raw.info['bads'].extend(drop_chs)
+        raw.info["bads"].extend(drop_chs)
 
     # use the same basename to save the data
     raw.drop_channels(raw.info["bads"])
@@ -225,26 +227,26 @@ def run_analysis(
     )
 
 
-
 def run_post_analysis(deriv_path=None, subject=None, features=None):
     if subject is not None:
         subjects = [subject]
     else:
         subjects = None
-    generate_patient_features(deriv_path, "fragility", features, subjects=subjects, verbose=True)
+    generate_patient_features(
+        deriv_path, "fragility", features, subjects=subjects, verbose=True
+    )
+
 
 def main():
-    bids_root = Path(
-        '/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/40Hz-30/')
-    deriv_root = bids_root / 'derivatives'
+    bids_root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/40Hz-30/")
+    deriv_root = bids_root / "derivatives"
     figures_path = deriv_root
 
     # define BIDS entities
-    IGNORE_SUBJECTS = [
-    ]
+    IGNORE_SUBJECTS = []
 
     datatype = "eeg"
-    task='monitor'
+    task = "monitor"
     extension = ".vhdr"
     session = "initialvisit"  # only one session
 
@@ -259,10 +261,10 @@ def main():
     for subject in all_subjects:
         if subject in IGNORE_SUBJECTS:
             continue
-        if 'awake' in subject or 'sleep' in subject:
+        if "awake" in subject or "sleep" in subject:
             continue
         ignore_subs = [sub for sub in all_subjects if sub != subject]
-        subj_dir = bids_root / f'sub-{subject}'
+        subj_dir = bids_root / f"sub-{subject}"
         runs = get_entity_vals(subj_dir, "run")
         print(f"Found {runs} runs.")
 
@@ -292,5 +294,6 @@ def main():
                 order=order,
             )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

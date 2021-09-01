@@ -150,8 +150,7 @@ def _channel_text_scrub(raw: mne.io.BaseRaw):
         # hard coded replacement rules
         # label = str(label).replace("POL ", "").upper()
         label = str(label).replace("POL", "").upper()
-        label = label.replace("EEG", "").replace(
-            "-REF", "")  # .replace("!","1")
+        label = label.replace("EEG", "").replace("-REF", "")  # .replace("!","1")
 
         # replace "Grid" with 'G' label
         label = label.replace("GRID", "G")
@@ -214,45 +213,57 @@ def bids_preprocess_raw(raw, bids_path, montage):
     # acquisition in EZTrack is encoded for eeg,ecog,seeg
     acquisition = bids_path.acquisition
     datatype = bids_path.datatype
-    
+
     # these are considered Reference channels in scalp EEG
-    ref_chs = ["A1", "A2", "M1", "M2"]
+    ref_chs = ["A1", "A2", "M1", "M2", "E"]
+
+    bio_chs = ["X1", "X2", "X3", "X4", "X5", "X6", "X7"]
 
     # set channel types
     if acquisition in ["seeg", "ecog", "eeg"]:
         logger.info(f"Setting channel types to: {acquisition}")
         raw.set_channel_types(
-            {raw.ch_names[i]: acquisition for i in mne.pick_types(
-                raw.info, eeg=True)}
+            {raw.ch_names[i]: acquisition for i in mne.pick_types(raw.info, eeg=True)}
         )
 
     # reformat channel text if necessary
     raw = _channel_text_scrub(raw)
-
+    print(
+        "Finished scrubbing channel text, and now the channel names are: ", raw.ch_names
+    )
     # set DC channels -> MISC for now
     picks = mne.pick_channels_regexp(raw.ch_names, regexp="DC|[$]")
-    raw.set_channel_types(
-        {raw.ch_names[pick]: "misc" for pick in picks}
-    )
+    raw.set_channel_types({raw.ch_names[pick]: "misc" for pick in picks})
+
+    picks = mne.pick_channels_regexp(raw.ch_names, regexp="PULSE")
+    raw.set_channel_types({raw.ch_names[pick]: "bio" for pick in picks})
+
+    picks = mne.pick_channels_regexp(raw.ch_names, regexp="CO2")
+    raw.set_channel_types({raw.ch_names[pick]: "bio" for pick in picks})
+
+    picks = mne.pick_channels_regexp(raw.ch_names, regexp="ETCO2")
+    raw.set_channel_types({raw.ch_names[pick]: "bio" for pick in picks})
+
+    picks = mne.pick_channels_regexp(raw.ch_names, regexp="SPO2")
+    raw.set_channel_types({raw.ch_names[pick]: "bio" for pick in picks})
 
     # set bio channels (e.g. EKG, EMG, EOG)
     picks = mne.pick_channels_regexp(raw.ch_names, regexp="EKG|ECG")
-    raw.set_channel_types(
-        {raw.ch_names[pick]: "ecg" for pick in picks}
-    )
+    raw.set_channel_types({raw.ch_names[pick]: "ecg" for pick in picks})
     picks = mne.pick_channels_regexp(raw.ch_names, regexp="EMG")
-    raw.set_channel_types(
-        {raw.ch_names[pick]: "emg" for pick in picks}
-    )
+    raw.set_channel_types({raw.ch_names[pick]: "emg" for pick in picks})
     picks = mne.pick_channels_regexp(raw.ch_names, regexp="EOG")
-    raw.set_channel_types(
-        {raw.ch_names[pick]: "eog" for pick in picks}
-    )
+    raw.set_channel_types({raw.ch_names[pick]: "eog" for pick in picks})
 
     if datatype == "eeg" and montage == "standard_1020":
         for ch in ref_chs:
             if ch in raw.ch_names:
                 raw.set_channel_types({ch: "misc"})
-    elif montage != 'standard_1020':
-        raise RuntimeError(f'Montage {montage} isnt supported. Did you make a mistake, or did you mean standard_1020?')
+        for ch in bio_chs:
+            if ch in raw.ch_names:
+                raw.set_channel_types({ch: "bio"})
+    elif montage != "standard_1020":
+        raise RuntimeError(
+            f"Montage {montage} isnt supported. Did you make a mistake, or did you mean standard_1020?"
+        )
     return raw

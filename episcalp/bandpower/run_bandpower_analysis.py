@@ -38,7 +38,7 @@ def run_bandpass_analysis(
     stepsize = stepsize_sec * int(sfreq)
 
     sample_points = compute_sample_points(ntimes, winsize, stepsize)
-    #sample_points = [sample_points[0]]
+    # sample_points = [sample_points[0]]
 
     band_names = list(band_dict.keys())
 
@@ -60,41 +60,54 @@ def run_bandpass_analysis(
         for ch in ch_names:
             mean_ptp_amplitude_dict[ch].append(ptp_amplitude_dict[ch])
 
-    deriv_dir = deriv_path / "band-power" / f"winsize-{winsize}" / f"stepsize-{stepsize}" / reference / f"sub-{subject}"
+    deriv_dir = (
+        deriv_path
+        / "band-power"
+        / f"winsize-{winsize}"
+        / f"stepsize-{stepsize}"
+        / reference
+        / f"sub-{subject}"
+    )
     deriv_dir.mkdir(exist_ok=True, parents=True)
 
     if save_intermed:
         bandpower_fname = Path(f"{bids_path.basename.split('_eeg')[0]}_bandpower.json")
         bandpower_fpath = deriv_dir / bandpower_fname
 
-        with open(bandpower_fpath, 'w+') as fid:
+        with open(bandpower_fpath, "w+") as fid:
             bandpower_dict["samplepoints"] = sample_points
             json.dump(bandpower_dict, fid, indent=4)
             bandpower_dict.pop("samplepoints")
 
-        ptp_amplitude_fname = Path(bandpower_fname.name.replace("bandpower", "ptpamplitude"))
+        ptp_amplitude_fname = Path(
+            bandpower_fname.name.replace("bandpower", "ptpamplitude")
+        )
         ptp_amplitude_fpath = deriv_dir / ptp_amplitude_fname
 
-        with open(ptp_amplitude_fpath, 'w+') as fid:
+        with open(ptp_amplitude_fpath, "w+") as fid:
             json.dump(mean_ptp_amplitude_dict, fid, indent=4)
 
     outlier_window_dict_ = _determine_outlier_windows(bandpower_dict, threshold)
     [print(f"{key}: {value}") for key, value in outlier_window_dict_.items()]
 
-    outlier_window_dict = _confirm_outlier_window_peaks(outlier_window_dict_, mean_ptp_amplitude_dict)
+    outlier_window_dict = _confirm_outlier_window_peaks(
+        outlier_window_dict_, mean_ptp_amplitude_dict
+    )
     [print(f"{key}: {value}") for key, value in outlier_window_dict.items()]
 
-    outlier_windows = _convert_outlier_windows_to_samplepoints(outlier_window_dict, sample_points)
+    outlier_windows = _convert_outlier_windows_to_samplepoints(
+        outlier_window_dict, sample_points
+    )
 
     outlier_fname = Path(f"{bids_path.basename.split('_eeg')[0]}_outliers.json")
     outlier_fpath = deriv_dir / outlier_fname
-    with open(outlier_fpath, 'w+') as fid:
+    with open(outlier_fpath, "w+") as fid:
         json.dump(outlier_windows, fid, indent=4)
 
     outlier_windows_full = _fill_chs(outlier_windows)
     outlier_fname = Path(f"{bids_path.basename.split('_eeg')[0]}_outliersfull.json")
     outlier_fpath = deriv_dir / outlier_fname
-    with open(outlier_fpath, 'w+') as fid:
+    with open(outlier_fpath, "w+") as fid:
         json.dump(outlier_windows_full, fid, indent=4)
 
     return outlier_window_dict
@@ -146,13 +159,15 @@ def _bandpower(data, sf, band, ch_names):
         Dictionary where keys are channel names and values are power in the provided band.
 
     """
-    psd, freqs = psd_array_multitaper(data, sf, band[0], band[1], adaptive=True, normalization='full', verbose=0)
+    psd, freqs = psd_array_multitaper(
+        data, sf, band[0], band[1], adaptive=True, normalization="full", verbose=0
+    )
     # Calculate frequency resolution
     freq_res = freqs[1] - freqs[0]
     # Specify band range
     idx_band = np.logical_and(freqs >= band[0], freqs <= band[1])
     # PSD is a series of discrete values, cannot be directly integrated, so use SIMPS to make a parabolic approximation
-    band_power = simps(psd[:,idx_band], dx=freq_res)
+    band_power = simps(psd[:, idx_band], dx=freq_res)
     band_dict = {}
     for ind, bp in enumerate(band_power):
         band_dict[ch_names[ind]] = bp
@@ -168,7 +183,7 @@ def _ptp_amplitude(ch_data, sfreq):
     peak_amplitudes = delta_data[peaks]
     trough_amplitudes = delta_data[troughs]
 
-    ptp_amplitudes = [abs(p-t) for p, t in zip(peak_amplitudes, trough_amplitudes)]
+    ptp_amplitudes = [abs(p - t) for p, t in zip(peak_amplitudes, trough_amplitudes)]
 
     if peaks[0] < troughs[0]:
         peak_amplitudes_ = peak_amplitudes[1:]
@@ -177,7 +192,7 @@ def _ptp_amplitude(ch_data, sfreq):
         peak_amplitudes_ = peak_amplitudes[:-1]
         trough_amplitudes_ = trough_amplitudes[1:]
 
-    ptp_amplitudes_ = [abs(p-t) for p, t in zip(peak_amplitudes_, trough_amplitudes_)]
+    ptp_amplitudes_ = [abs(p - t) for p, t in zip(peak_amplitudes_, trough_amplitudes_)]
     ptp_amplitudes.extend(ptp_amplitudes_)
 
     return ptp_amplitudes
@@ -190,7 +205,7 @@ def _get_delta_activity(data, sfreq):
     start = min([i for i, x in enumerate(xf) if x >= 0.5])
     stop = min([i for i, x in enumerate(xf) if x >= 4.0])
     yf[0:start] = 0
-    yf[stop+1:len(yf)] = 0
+    yf[stop + 1 : len(yf)] = 0
 
     new_sig = irfft(yf)
 
@@ -200,13 +215,17 @@ def _get_delta_activity(data, sfreq):
 def _determine_outlier_windows(bandpower_dict, threshold):
     outlier_window_dict = collections.defaultdict(list)
     total_delta = []
-    [total_delta.extend(bandpower_dict[key]['delta']) for key in bandpower_dict.keys()]
+    [total_delta.extend(bandpower_dict[key]["delta"]) for key in bandpower_dict.keys()]
     mean_delta = np.mean(total_delta)
     stdev_delta = np.std(total_delta)
     threshold_delta = mean_delta + threshold * stdev_delta
     for chname in bandpower_dict.keys():
-        delta_power = bandpower_dict[chname]['delta']
-        [outlier_window_dict[chname].append(idx) for idx, delta in enumerate(delta_power) if delta > threshold_delta]
+        delta_power = bandpower_dict[chname]["delta"]
+        [
+            outlier_window_dict[chname].append(idx)
+            for idx, delta in enumerate(delta_power)
+            if delta > threshold_delta
+        ]
     return outlier_window_dict
 
 
@@ -235,8 +254,8 @@ def _convert_outlier_windows_to_samplepoints(outlier_window_dict, sample_points)
 
 if __name__ == "__main__":
     root = Path("D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents/40Hz-30")
-    subjects = get_entity_vals(root, 'subject')
-    #subjects = [subjects[0]]
+    subjects = get_entity_vals(root, "subject")
+    # subjects = [subjects[0]]
     for subject in subjects:
         bids_entities = {
             "subject": subject,
@@ -244,7 +263,7 @@ if __name__ == "__main__":
             "task": "monitor",
             "run": "01",
             "datatype": "eeg",
-            "extension": ".vhdr"
+            "extension": ".vhdr",
         }
         bids_path_ = BIDSPath(root=root, **bids_entities)
         bids_path = bids_path_.match()
@@ -257,12 +276,18 @@ if __name__ == "__main__":
             "beta": [13, 30],
             "alpha": [8, 12],
             "theta": [4, 7],
-            "delta": [1, 3]
+            "delta": [1, 3],
         }
         winsize = 5
         stepsize = 1
         deriv_path = root / "derivatives"
-        out_dict = run_bandpass_analysis(bids_path, band_dict, winsize, stepsize, deriv_path, "monopolar",
-                                         save_intermed=False)
-        #print(out_dict)
-
+        out_dict = run_bandpass_analysis(
+            bids_path,
+            band_dict,
+            winsize,
+            stepsize,
+            deriv_path,
+            "monopolar",
+            save_intermed=False,
+        )
+        # print(out_dict)

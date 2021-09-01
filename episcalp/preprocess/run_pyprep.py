@@ -7,7 +7,15 @@ from episcalp.utils import (
 )
 
 
-def run_pyprep(bids_path, figures_path, reference, rereference=False, plot_raw=True, descriptions=None, verbose=True):
+def run_pyprep(
+    bids_path,
+    figures_path,
+    reference,
+    rereference=False,
+    plot_raw=True,
+    descriptions=None,
+    verbose=True,
+):
     if descriptions is None:
         descriptions = ["onset", "@seizure", "offset", "sz event"]
     raw = read_scalp_eeg(bids_path, reference, rereference=rereference, verbose=verbose)
@@ -42,7 +50,9 @@ def run_pyprep(bids_path, figures_path, reference, rereference=False, plot_raw=T
 
         # save output figure
         figure_fpath = (
-            figures_path / "raw" / bids_path.update(extension=".png", check=False).basename
+            figures_path
+            / "raw"
+            / bids_path.update(extension=".png", check=False).basename
         )
         figure_fpath.parent.mkdir(parents=True, exist_ok=True)
         scale = 25e-6

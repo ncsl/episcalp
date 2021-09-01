@@ -15,8 +15,8 @@ import os
 
 from sample_code.study import generate_patient_features
 
-sys.path.append('../../')
-sys.path.append('./episcalp')
+sys.path.append("../../")
+sys.path.append("./episcalp")
 print(os.getcwd())
 from episcalp.io import read_scalp_eeg
 
@@ -42,7 +42,7 @@ def run_sourcesink_analysis(
 
     # get the root derivative path
     deriv_chain = Path("sourcesink") / reference / f"sub-{subject}"
-    figures_path = figures_path / 'figures' / deriv_chain
+    figures_path = figures_path / "figures" / deriv_chain
     raw_figures_path = root / "derivatives" / "figures" / "raw" / f"sub-{subject}"
     deriv_path = deriv_path / deriv_chain
 
@@ -58,12 +58,15 @@ def run_sourcesink_analysis(
 
     # load in raw data
     raw = read_scalp_eeg(
-        bids_path, reference=reference, rereference=rereference,
-         resample_sfreq=resample_sfreq, verbose=verbose
+        bids_path,
+        reference=reference,
+        rereference=rereference,
+        resample_sfreq=resample_sfreq,
+        verbose=verbose,
     )
     if extra_channels:
         drop_chs = [ec for ec in extra_channels if ec in raw.ch_names]
-        raw.info['bads'].extend(drop_chs)
+        raw.info["bads"].extend(drop_chs)
 
     # use the same basename to save the data
     raw.drop_channels(raw.info["bads"])
@@ -141,4 +144,6 @@ def run_post_analysis(deriv_path=None, subject=None, features=None):
         subjects = [subject]
     else:
         subjects = None
-    generate_patient_features(deriv_path, "sourcesink", features, subjects=subjects, verbose=True)
+    generate_patient_features(
+        deriv_path, "sourcesink", features, subjects=subjects, verbose=True
+    )

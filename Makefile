@@ -76,8 +76,8 @@ upload-pipy:
 black:
 	@if command -v black > /dev/null; then \
 		echo "Running black"; \
-		black --check ezscalp; \
-		black ezscalp/*; \
+		black --check episcalp; \
+		black episcalp/*; \
 	else \
 		echo "black not found, please install it!"; \
 		exit 1; \

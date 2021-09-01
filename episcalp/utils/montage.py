@@ -234,8 +234,4 @@ def pick_types(
     return sel
 
 
-_PICK_TYPES_DATA_DICT = dict(
-    eeg=True,
-    seeg=True,
-    ecog=True
-)
+_PICK_TYPES_DATA_DICT = dict(eeg=True, seeg=True, ecog=True)
