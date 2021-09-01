@@ -28,13 +28,20 @@ facilitated by following the BIDS protocol.
 the raw EDF data. During this, data is notch filtered, and bandpass filtered between 1-30 Hz (to remove
 higher frequency muscle artifacts). Then auto-ICA will try to remove stereotypical artifacts.
    - ICA preprocessing is done in `eeglab`, where data is then output in the `.set` data format. 
-
+   - episcalp/preprocess/matlab/run_me.m
+   
 4. BIDS-conversion (ICA-cleaned EDF data): Using `mne-bids`, we will convert ICA-cleaned-data to BIDS format of the raw EEG data. Data
 will be stored in EDF format.
 
+
 4. ICA preprocessed data will be written to `<bids_root>/derivatives/` folder using `mne_bids` copy_eeglab function to convert to BIDS.
+    episcalp/bids/run_bids_conversion_ica.py.
    
 5. Further analysis will either start from the raw data, or from the ICA preprocessed data.
+
+6. Feature generation code is stored in a subfolder of episcalp
+
+7. Scripts that assist in IO of intermediate results (specifically for notebooks) is located within sample_code
 
 High level details that remain to be sorted out are the inclusion of Persyst spikes:
 
