@@ -59,7 +59,7 @@ function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_comp
             end
             if (concatenate_windows)
                 set_fname = pat_name+".set";
-                 a zoom lEEG_win = pop_saveset( EEG_win, 'filename', char(set_fname),'filepath',char(dirname));
+                EEG_win = pop_saveset( EEG_win, 'filename', char(set_fname),'filepath',char(dirname));
             end
                        
         else

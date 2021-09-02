@@ -39,7 +39,7 @@ else
     search_str = fullfile(root_dir, '*.edf');
 end
 files = dir(search_str);
-files = files([7, 15], :);
+% files = files([5, 35, 64], :);
 ext_files = {};
 for find = 1:length(files)
     fname = files(find).name;
