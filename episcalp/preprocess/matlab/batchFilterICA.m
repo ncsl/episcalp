@@ -1,4 +1,4 @@
-function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_components, window_ica, window_length)
+function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_components, plot_components, window_ica, window_length, save_windows, concatenate_windows)
     % pt_data is a struct with cell array fields record, hdr, and
     % source_file, which are the outputs of the filtered data
     records = pt_data.record';
@@ -30,6 +30,10 @@ function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_comp
         % perform the actual ICA. Make sure you have the binICA files set
         % or else this will be very slow
         if (window_ica)
+            EEG_win = EEG;
+            EEG_win.data = [];
+            EEG_win.times = [];
+            EEG_win.pnts = 0;
             [starts, stops] = get_sample_points(EEG, window_length);
             for win = 1:length(starts)
                 window = [starts(win), stops(win)];
@@ -39,18 +43,23 @@ function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_comp
                 EEG_.pnts = window(2)-window(1)+1;
                 dirname_ = fullfile(dirname, "win-"+win);
                 mkdir(dirname_);
-                EEG_ = filterICA(EEG_, true, brain_thresh, save_components, dirname_, pat_name);
+                EEG_ = filterICA(EEG_, true, brain_thresh, save_components, plot_components, dirname_, pat_name, save_windows);
                 % extract the necessary information
-                pt_data = struct();
-                pt_data.data_filt = EEG_.data;
-                pt_data.fs = EEG_.srate;
-                chanlocs = EEG_.chanlocs;
-                pt_data.labels = {chanlocs(:).labels}';
-                % save both a .mat file and an EEGlab file
-                results_fname = fullfile(dirname_, pat_name+".mat");
-                save(results_fname, 'pt_data');
+                data_ = EEG_.data;
+                times_ = EEG_.times;
+                pnts_ = EEG.pnts;
+                if (~save_components)
+                    EEG_.data = [];
+                end
                 set_fname = pat_name+".set";
                 EEG_ = pop_saveset( EEG_, 'filename', char(set_fname),'filepath',char(dirname_));
+                EEG_win.data = [EEG_win.data, data_];
+                EEG_win.times = [EEG_win.times, times_];
+                EEG_win.pnts = length(EEG_win.times);
+            end
+            if (concatenate_windows)
+                set_fname = pat_name+".set";
+                 a zoom lEEG_win = pop_saveset( EEG_win, 'filename', char(set_fname),'filepath',char(dirname));
             end
                        
         else

@@ -1,4 +1,4 @@
-function output = filterICA(EEG, bin, brain_thresh, save_components, dirname, pat_name)
+function output = filterICA(EEG, bin, brain_thresh, save_components, plot_components, dirname, pat_name, save_windows)
     %% Filter the data via ICA
     % Input:
     %   EEG: the eeg object used in EEGLab
@@ -38,19 +38,18 @@ function output = filterICA(EEG, bin, brain_thresh, save_components, dirname, pa
     reject = struct();
     if (save_components)
         suffix = '_full';
-        save_ICA_plots(EEG, dirname, suffix, 'png');
+        if (plot_components)
+            save_ICA_plots(EEG, dirname, suffix, 'png');
+        end
         reject = EEG.reject;
-        
-        pt_data = struct();
-        pt_data.data_filt = EEG.data;
-        pt_data.fs = EEG.srate;
-        chanlocs = EEG.chanlocs;
-        pt_data.labels = {chanlocs(:).labels}';
-        
-        results_fname = fullfile(dirname, pat_name+"_full.mat");
-        save(results_fname, 'pt_data');
+
+        data = EEG.data;
+        if (~save_windows)
+            EEG.data = [];
+        end
         set_fname = pat_name+"_full.set";
         EEG = pop_saveset( EEG, 'filename', char(set_fname),'filepath',char(dirname));
+        EEG.data = data;
     end
     
     %% Label the components using the ICLabel classifier
@@ -75,7 +74,9 @@ function output = filterICA(EEG, bin, brain_thresh, save_components, dirname, pa
         reject_ = EEG.reject;
         EEG.reject = structfun(@(x) [], reject, 'UniformOutput', false);
         suffix = '_filtered';
-        save_ICA_plots(EEG, dirname, suffix, 'png');
+        if (plot_components)
+            save_ICA_plots(EEG, dirname, suffix, 'png');
+        end
         EEG.reject = reject_;
     end
     output = EEG;

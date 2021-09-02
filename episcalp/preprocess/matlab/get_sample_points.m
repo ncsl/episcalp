@@ -11,7 +11,7 @@ function [starts, stops] = get_sample_points(EEG, window_length)
     stops = zeros(nwins,1);
     win = 1;
     while(start < data_len)
-        stop = min(start + winsize, data_len);
+        stop = min(start + winsize-1, data_len);
         starts(win) = start;
         stops(win) = stop;
         start = start + winsize;
