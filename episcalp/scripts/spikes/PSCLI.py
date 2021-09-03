@@ -11,6 +11,12 @@ def clean_folder_files(fpath, keep=".edf"):
 
 
 if __name__ == "__main__":
+    """
+    Run this script 3 times. 
+    1. The clean flags are False. The bashCmd's last flag should be "/Process", this will run the processing command
+    2. The clean flags are False. The bashCmd's last flag should be "/Archive", this will archive the processed results
+    3. Turn the clean_files to True. This will clean up the extra files in the folders
+    """
     clean_files = True
     clean_folders = False
     if clean_files:
