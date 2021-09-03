@@ -67,7 +67,7 @@ def add_spikes_jhh():
             subject=subject, root=root, datatype=datatype, suffix=suffix
         )
 
-        fpaths = bids_path_.match()
+        fpaths = bids_path_.match(check=True)
         if fpaths == []:
             raise RuntimeError(f"The parameters {bids_path_} do not match anything")
 
@@ -80,8 +80,17 @@ def add_spikes_jhh():
 
             # Read in persyst data that contains spike information
             spike_dir = Path(spike_root) / spike_sub
+            task = bids_path.task
+
             spike_fpath = list(spike_dir.glob(f"{spike_sub}_*run-{run}_spikes.lay"))
-            assert len(spike_fpath) == 1
+            if len(spike_fpath) > 1 or len(spike_fpath) == 0:
+                if task == "asleep":
+                    task = "sleep"
+                search_str = f"{spike_sub}_*{task}*_spikes.lay"
+                spike_fpath = list(spike_dir.glob(search_str))
+                if len(spike_fpath) > 1:
+                    assert False
+
             spike_fpath = spike_fpath[0]
             raw_persyst = mne.io.read_raw_persyst(spike_fpath)
 
