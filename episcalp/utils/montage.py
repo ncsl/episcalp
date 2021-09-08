@@ -61,6 +61,42 @@ def compute_lobes_from_montage(info):
     return ch_groups
 
 
+def set_bipolar_montage(raw, montage_scheme, drop_original_chs=True, verbose=True):
+    """Rereference the raw data to the specified bipolar montage scheme."""
+    ch_names = raw.ch_names
+    bipolar_pairs = _get_bipolar_pairs(montage_scheme)
+    for pair in bipolar_pairs:
+        anode, cathode = pair
+        if all(p in ch_names for p in pair):
+            raw = mne.set_bipolar_reference(raw, anode, cathode, drop_refs=False)
+        elif verbose:
+            print(f"The pair of anode {anode} and cathode {cathode} not found in the data.")
+    if drop_original_chs and bipolar_pairs is not None:
+        raw.drop_channels(ch_names)
+    return raw
+
+
+def _get_bipolar_pairs(montage_scheme):
+    """Get a list of (anode, cathode) pairs for the bipolar scheme."""
+    if montage_scheme == "bipolar_longitudinal":
+        pairs = [["Fp1", "F7"], ["F7", "T7"], ["T7", "P7"], ["F7", "T3"], ["T3", "T5"], ["P7", "O1"], ["T5", "O1"],
+                 ["Fp1", "F3"], ["F3", "C3"], ["C3", "P3"], ["P3", "O1"], ["Fpz", "Fz"], ["Fz", "Cz"], ["Cz", "Pz"],
+                 ["Pz", "Oz"], ["Fp2", "F4"], ["F4", "C4"], ["C4", "P4"], ["P4", "O2"], ["Fp2", "F8"], ["F8", "T8"],
+                 ["T8", "P8"], ["P8", "O2"], ["F8", "T4"], ["T4", "T6"], ["T6", "O2"]]
+        return pairs
+    return None
+
+
+def get_ch_renaming_map(current_ch_names, goal_ch_names):
+    """Get a dict of renaming pairs where key is current name and val is goal name."""
+    renaming_dict = {}
+    for cur_chan in current_ch_names:
+        for goal_chan in goal_ch_names:
+            if cur_chan.upper() == goal_chan.upper():
+                renaming_dict[cur_chan] = goal_chan
+    return renaming_dict
+
+
 def _divide_to_regions(info, add_stim=True):
     """Divide channels to regions by positions."""
     from scipy.stats import zscore

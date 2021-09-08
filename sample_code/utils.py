@@ -430,8 +430,11 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def _standard_channels():
-    return ["Fp1", "Fp2", "F3", "F4", "F7", "F8", "P3", "P4", "C3", "C4", "P7", "P8", "O1", "O2", "T3", "T4", "T5", "T6", "T7", "T8"]
+def _standard_channels(include_midline=False):
+    chs = ["Fp1", "Fp2", "F3", "F4", "F7", "F8", "P3", "P4", "C3", "C4", "P7", "P8", "O1", "O2", "T3", "T4", "T5", "T6", "T7", "T8"]
+    if include_midline:
+        chs.extend(["Fz", "Cz", "Pz"])
+    return chs
 
 
 def _standard_lobes(separate_hemispheres=False):

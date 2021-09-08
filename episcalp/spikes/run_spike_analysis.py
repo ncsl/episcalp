@@ -10,9 +10,10 @@ import json
 
 def run_spike_analysis(
     source_path,
-    subject,
+    subject=None,
     deriv_path=None,
     figures_path=None,
+    deriv_chain=None,
     reference='monopolar',
     fill=True,
     prune=True,
@@ -20,10 +21,12 @@ def run_spike_analysis(
     **model_params,
 ):
     # get the root derivative path
-    deriv_chain = Path("spikes") / reference / f"sub-{subject}"
-    output_basename = source_path.name
-    output_fname = Path(f"{output_basename}_spikes").with_suffix(".json")
-    output_fpath = deriv_path / deriv_chain / output_fname
+
+    if save_json:
+        deriv_chain = Path("spikes") / reference / f"sub-{subject}"
+        output_basename = source_path.name
+        output_fname = Path(f"{output_basename}_spikes").with_suffix(".json")
+        output_fpath = deriv_path / deriv_chain / output_fname
 
     raw = mne.io.read_raw_persyst(source_path)
     annotations = raw.annotations
@@ -59,6 +62,7 @@ def run_spike_analysis(
         with open(output_fpath, 'w+') as fid:
             json.dump(spike_rates, fid, indent=4)
     return spike_rates
+
 
 
 def _count_spikes(spike_list):
