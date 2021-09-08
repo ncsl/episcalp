@@ -1,4 +1,4 @@
-function output = filterICA(EEG, bin, brain_thresh, save_components, plot_components, dirname, pat_name, save_windows)
+function [output, classifications] = filterICA(EEG, bin, brain_thresh, save_components, dirname, fname)
     %% Filter the data via ICA
     % Input:
     %   EEG: the eeg object used in EEGLab
@@ -35,22 +35,6 @@ function output = filterICA(EEG, bin, brain_thresh, save_components, plot_compon
         EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
     end
     % EEG = pop_runica(EEG);
-    reject = struct();
-    if (save_components)
-        suffix = '_full';
-        if (plot_components)
-            save_ICA_plots(EEG, dirname, suffix, 'png');
-        end
-        reject = EEG.reject;
-
-        data = EEG.data;
-        if (~save_windows)
-            EEG.data = [];
-        end
-        set_fname = pat_name+"_full.set";
-        EEG = pop_saveset( EEG, 'filename', char(set_fname),'filepath',char(dirname));
-        EEG.data = data;
-    end
     
     %% Label the components using the ICLabel classifier
     EEG = iclabel(EEG);
@@ -67,18 +51,26 @@ function output = filterICA(EEG, bin, brain_thresh, save_components, plot_compon
         end
     end
     
+    % Grab the relevant data from the ICA run and save
+    if (save_components)
+        ica_data = struct();
+        ica_data.data = EEG.data;
+        ica_data.labels = {EEG.chanlocs(:).labels};
+        ica_data.components = classifications;
+        ica_data.sfreq = EEG.srate;
+        ica_data.times = EEG.times;
+        ica_data.icaact = EEG.icaact;
+        ica_data.icawinv = EEG.icawinv;
+        ica_data.icasphere = EEG.icasphere;
+        ica_data.icaweights = EEG.icaweights;
+        ica_data.icachansind = EEG.icachansind;
+        out_fpath = fullfile(dirname, fname);
+        save(out_fpath, 'ica_data');
+    end
+    
     %% Remove the components flagged for removal
     EEG = pop_subcomp(EEG, remove);
-    if (save_components)
-        % temporarily reset reject so that we can run ICLabel
-        reject_ = EEG.reject;
-        EEG.reject = structfun(@(x) [], reject, 'UniformOutput', false);
-        suffix = '_filtered';
-        if (plot_components)
-            save_ICA_plots(EEG, dirname, suffix, 'png');
-        end
-        EEG.reject = reject_;
-    end
+    
     output = EEG;
     return;
 end

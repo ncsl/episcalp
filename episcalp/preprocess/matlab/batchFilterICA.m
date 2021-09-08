@@ -1,4 +1,4 @@
-function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_components, plot_components, window_ica, window_length, save_windows, concatenate_windows)
+function batchFilterICA(pt_data, outdir, componentdir, EEGLabPath, OS, brain_thresh, save_components, window_ica, window_length, concatenate_windows)
     % pt_data is a struct with cell array fields record, hdr, and
     % source_file, which are the outputs of the filtered data
     records = pt_data.record';
@@ -8,15 +8,20 @@ function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_comp
     
     % make output directory
     mkdir(outdir);
+    mkdir(componentdir);
     
     for pat = 1:num_patients
         % extract the record info
         record = records{pat};
         hdr = hdrs{pat};
-        fname = fnames{pat};
-        [~,pat_name,~] = fileparts(fname);
+        fpath = fnames{pat};
+        [~,fname,~] = fileparts(fpath);
+        [pat_name, session, task, run] = get_bids_params(fname);
+        outname = create_out_name(pat_name, session, task, run);
         dirname = fullfile(outdir, pat_name); 
         mkdir(dirname);
+        compdirname = fullfile(componentdir, pat_name);
+        mkdir(compdirname);
         EEG = eeg_emptyset;
         labels = hdr.label';
         disp(labels)
@@ -41,9 +46,8 @@ function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_comp
                 EEG_.data = EEG.data(:, window(1):window(2));
                 EEG_.times = EEG.times(window(1):window(2));
                 EEG_.pnts = window(2)-window(1)+1;
-                dirname_ = fullfile(dirname, "win-"+win);
-                mkdir(dirname_);
-                EEG_ = filterICA(EEG_, true, brain_thresh, save_components, plot_components, dirname_, pat_name, save_windows);
+                fname = sprintf("%s_win-%d_components.mat", outname, win);
+                EEG_ = filterICA(EEG_, true, brain_thresh, save_components, compdirname, fname);
                 % extract the necessary information
                 data_ = EEG_.data;
                 times_ = EEG_.times;
@@ -51,8 +55,8 @@ function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_comp
                 if (~save_components)
                     EEG_.data = [];
                 end
-                set_fname = pat_name+".set";
-                EEG_ = pop_saveset( EEG_, 'filename', char(set_fname),'filepath',char(dirname_));
+                set_fname = sprintf("%s_win-%d.set", outname, win);
+                EEG_ = pop_saveset( EEG_, 'filename', char(set_fname),'filepath',char(compdirname));
                 EEG_win.data = [EEG_win.data, data_];
                 EEG_win.times = [EEG_win.times, times_];
                 EEG_win.pnts = length(EEG_win.times);
@@ -63,7 +67,8 @@ function batchFilterICA(pt_data, outdir, EEGLabPath, OS, brain_thresh, save_comp
             end
                        
         else
-            EEG = filterICA(EEG, true, brain_thresh, save_components, dirname, pat_name);
+            fname = sprintf("%s_components.mat", outname);
+            EEG = filterICA(EEG, true, brain_thresh, save_components, dirname, fname);
             % extract the necessary information
             pt_data = struct();
             pt_data.data_filt = EEG.data;
