@@ -23,6 +23,11 @@ def identify_artifacts(data, lower_perc=None, higher_perc=None):
     np.ndarray
         nCh x nT array where -1 denotes a low artifact and 1 denotes a high artifact.
 
+    Raises
+    ------
+    RuntimeError
+        [description]
+
     """
 
     if data.ndim > 2:
@@ -41,6 +46,7 @@ def identify_artifacts(data, lower_perc=None, higher_perc=None):
 
     artifacts[data <= lower_perc] = -1
     artifacts[data >= higher_perc] = 1
+
     return artifacts
 
 

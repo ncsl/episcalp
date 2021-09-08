@@ -7,6 +7,9 @@ from mne_bids.tsv_handler import _to_tsv, _from_tsv
 from mne_bids.utils import _write_json
 
 
+from episcalp.utils.standard_1020_montage import get_standard_1020_montage
+
+
 def update_participants_info(
     root, subject, key, value, description=None, levels=None, units=None
 ):
@@ -149,8 +152,9 @@ def _channel_text_scrub(raw: mne.io.BaseRaw):
 
         # hard coded replacement rules
         # label = str(label).replace("POL ", "").upper()
-        label = str(label).replace("POL", "").upper()
+        label = str(label).replace("POL", "")
         label = label.replace("EEG", "").replace("-REF", "")  # .replace("!","1")
+        label = label.replace("-Ref", "")  # .replace("!","1")
 
         # replace "Grid" with 'G' label
         label = label.replace("GRID", "G")
@@ -160,7 +164,7 @@ def _channel_text_scrub(raw: mne.io.BaseRaw):
         return label
 
     # apply channel scrubbing
-    raw = raw.rename_channels(lambda x: x.upper())
+    # raw = raw.rename_channels(lambda x: x.upper())
 
     # encapsulated into a try statement in case there are blank channel names
     # after scrubbing these characters
@@ -262,6 +266,17 @@ def bids_preprocess_raw(raw, bids_path, montage):
         for ch in bio_chs:
             if ch in raw.ch_names:
                 raw.set_channel_types({ch: "bio"})
+        montage_chs = get_standard_1020_montage()
+        ch_names = raw.ch_names
+        ch_types = raw.get_channel_types()
+        current_eeg_chs = [
+            ch for idx, ch in enumerate(ch_names) if ch_types[idx] == "eeg"
+        ]
+
+        print("Current EEG channels...")
+        for ch in current_eeg_chs:
+            if ch not in montage_chs:
+                raw.set_channel_types({ch: "misc"})
     elif montage != "standard_1020":
         raise RuntimeError(
             f"Montage {montage} isnt supported. Did you make a mistake, or did you mean standard_1020?"
