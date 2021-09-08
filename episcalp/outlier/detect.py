@@ -92,11 +92,11 @@ def identify_artifact_windows(data, winsize, perc_chans, perc_time, lower_perc=N
     for ind, (start_win, stop_win) in enumerate(sample_points):
         artifact_win = artifacts[:, start_win:stop_win]
         # Get number of channels per time point that were artifactual
-        artifact_ch_count = np.sum(artifact_wins, axis=0)
+        artifact_ch_count = np.sum(np.abs(artifact_wins), axis=0)
         # Get timepoints where number of channel threshold was met
         artifact_ch_pos = [a >= r_signals for a in artifact_ch_count]
         # Get the number of timepoints that passed the above
-        artifact_timepoints = np.sum(artifact_ch_pos)
+        artifact_timepoints = np.sum(np.abs(artifact_ch_pos))
         if artifact_timepoints >= r_times:
             artifact_wins[ind] = 1
 
