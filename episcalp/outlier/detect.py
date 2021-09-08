@@ -52,9 +52,10 @@ def identify_artifacts(data, win_size, ch_threshold, time_threshold):
         data_windows[..., idx] = data[:, win_start:win_end]
         data_window_artifacts[..., idx] = artifacts[:, win_start:win_end]
 
+    # TODO: Fix this and validate?
     # find the number of artifact time points in each window
     n_artifacts_ch = np.sum(np.abs(data_window_artifacts), axis=1)
     n_artifacts_time = n_artifacts_ch >= ch_threshold
-
     # artifact_wins =
+
     return artifacts
