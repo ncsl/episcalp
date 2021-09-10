@@ -1,34 +1,6 @@
-%% Variables to Set Up
+%% Set parameters from the get_run_params file, which should not be vc
 
-EEGLabPath = 'D:/Desktop/eeglab_default/eeglab2020_0'; % change this
-addpath(genpath(EEGLabPath))
-
-root_dir = "D:\OneDriveParent\OneDrive - Johns Hopkins\Shared Documents\bids"; % change this
-%folder = '/home/adam2392/hdd3/tuh_epileptic_abnormal_vs_normal_EEG/sourcedata/abnormal/';
-dataset = 'tuh_epilepsy_vs_normal';  % used to save the temporary files, not important
-extension = '.edf';
-
-group_size=5; % chunk the data to make computation a little faster
-% path_separator = '/';  % change for Windows/Linux systems \ or /
-os = 'Windows';  % eeglab has additional constraints for os than just path. We will just capture them here
-
-filt_range = [1, 30];  % Frequencies to band-pass filter the data
-filt_order = 4;        % Order of the band-pass filter
-
-brain_thresh = 0.30;   % High threshold of brain perc to mark component for removal
-
-save_components = true;  % If true, save the components before/after removal
-
-window_ica = true;       % If true, splits the eeg data into windows, computes ICA for the window
-window_length = 10;        % Only used if window_ica is true. Window length in seconds.S
-concatenate_windows = true;
-
-outputdir = sprintf("D:\\OneDriveParent\\OneDrive - Johns Hopkins\\Shared Documents\\bids\\derivatives\\ICA\\%d-%dHz-%0d\\win-%d", filt_range(1), filt_range(2), 100*brain_thresh, window_length);  % change this
-%outputdir = '/home/adam2392/hdd3/tuh_epilepsy_vs_normal/derivatives/ICA/sourcedata/epilepsy/';
-%outputdir = '/home/adam2392/hdd3/tuh_epileptic_abnormal_vs_normal_EEG/derivatives/ICA/sourcedata/abnormal/';
-componentdir = "D:\OneDriveParent\OneDrive - Johns Hopkins\Shared Documents\bids\derivatives\ICA_components\sourcedata";
-
-bids = true;            % If true, expects data to be in BIDS format rather than just in one sourcedata folder
+[EEGLabPath, root_dir, componentdir, extension, os, bids, filt_range, filt_order, brain_thresh, save_components, window_ica, window_length, concatenate_windows, outputdir] = get_run_params();
 
 %%
 
@@ -39,7 +11,7 @@ else
     search_str = fullfile(root_dir, '*.edf');
 end
 files = dir(search_str);
-% files = files([5, 35, 64], :);
+%files = files(2:6, :);
 ext_files = {};
 for find = 1:length(files)
     fname = files(find).name;

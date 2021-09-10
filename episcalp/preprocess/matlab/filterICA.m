@@ -35,10 +35,9 @@ function [output, classifications] = filterICA(EEG, bin, brain_thresh, save_comp
         EEG = pop_runica(EEG,'icatype','runica', 'extended',1,'interupt','on');
     end
     % EEG = pop_runica(EEG);
-    
     %% Label the components using the ICLabel classifier
     EEG = iclabel(EEG);
-    
+
     %% Filter out components
     classifications = EEG.etc.ic_classification.ICLabel.classifications;
     [m,n] = size(classifications);
@@ -50,7 +49,7 @@ function [output, classifications] = filterICA(EEG, bin, brain_thresh, save_comp
             remove = [remove; i]; % append this component to remove array
         end
     end
-    
+
     % Grab the relevant data from the ICA run and save
     if (save_components)
         ica_data = struct();
@@ -67,7 +66,7 @@ function [output, classifications] = filterICA(EEG, bin, brain_thresh, save_comp
         out_fpath = fullfile(dirname, fname);
         save(out_fpath, 'ica_data');
     end
-    
+
     %% Remove the components flagged for removal
     EEG = pop_subcomp(EEG, remove);
     

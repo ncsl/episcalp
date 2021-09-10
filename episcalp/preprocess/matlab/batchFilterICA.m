@@ -18,7 +18,7 @@ function batchFilterICA(pt_data, outdir, componentdir, EEGLabPath, OS, brain_thr
         [~,fname,~] = fileparts(fpath);
         [pat_name, session, task, run] = get_bids_params(fname);
         outname = create_out_name(pat_name, session, task, run);
-        dirname = fullfile(outdir, pat_name); 
+        dirname = fullfile(outdir, sprintf('sub-%s',pat_name)); 
         mkdir(dirname);
         compdirname = fullfile(componentdir, pat_name);
         mkdir(compdirname);
@@ -62,7 +62,7 @@ function batchFilterICA(pt_data, outdir, componentdir, EEGLabPath, OS, brain_thr
                 EEG_win.pnts = length(EEG_win.times);
             end
             if (concatenate_windows)
-                set_fname = pat_name+".set";
+                set_fname = outname+".set";
                 EEG_win = pop_saveset( EEG_win, 'filename', char(set_fname),'filepath',char(dirname));
             end
                        
@@ -78,7 +78,7 @@ function batchFilterICA(pt_data, outdir, componentdir, EEGLabPath, OS, brain_thr
             % save both a .mat file and an EEGlab file
             results_fname = fullfile(dirname, pat_name+".mat");
             save(results_fname, 'pt_data');
-            set_fname = pat_name+".set";
+            set_fname = outname+".set";
             EEG = pop_saveset( EEG, 'filename', char(set_fname),'filepath',char(dirname));
         end
         % clean up temp files used in binary ICA computation
