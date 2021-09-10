@@ -55,6 +55,7 @@ def add_spikes_jhh():
     spike_root = root / "derivatives" / "spikes" / "monopolar"
     site_id = "jhh"
 
+    extension = ".edf"
     datatype = "eeg"
     suffix = "eeg"
 
@@ -64,7 +65,11 @@ def add_spikes_jhh():
 
     for subject in subjects:
         bids_path_ = BIDSPath(
-            subject=subject, root=root, datatype=datatype, suffix=suffix
+            subject=subject,
+            root=root,
+            datatype=datatype,
+            suffix=suffix,
+            extension=extension,
         )
 
         fpaths = bids_path_.match(check=True)
@@ -75,6 +80,8 @@ def add_spikes_jhh():
         spike_sub = f"sub-{sub}"
         # read the original raw file
         for bids_path in fpaths:
+            print(f"Adding spikes for {bids_path}")
+
             raw_src = read_raw_bids(bids_path)
             run = bids_path.run
 

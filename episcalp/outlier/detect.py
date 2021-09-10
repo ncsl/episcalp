@@ -50,7 +50,9 @@ def identify_artifacts(data, lower_perc=None, higher_perc=None):
     return artifacts
 
 
-def identify_artifact_windows(data, winsize, perc_chans, perc_time, lower_perc=None, higher_perc=None):
+def identify_artifact_windows(
+    data, winsize, perc_chans, perc_time, lower_perc=None, higher_perc=None
+):
     """
     Get windows that surpass the channel and timepoint threshold.
 
@@ -101,5 +103,3 @@ def identify_artifact_windows(data, winsize, perc_chans, perc_time, lower_perc=N
             artifact_wins[ind] = 1
 
     return artifact_wins
-
-
