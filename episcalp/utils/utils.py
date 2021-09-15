@@ -1,4 +1,3 @@
-
 def compute_sample_points(ntimes, winsize, stepsize, clip=True):
     sample_points = []
     start_samp = 0

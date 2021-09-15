@@ -16,13 +16,23 @@ https://github.com/bids-standard/bids-specification/blob/master/src/04-modality-
 High-level Pipeline
 -------------------
 
-1. (Optional) If data is not in BIDS format yet, a BIDS conversion script should be carried out using `mne-bids`.
+We will consistently obtain data from manufacturing, or EDF format. These files however, are not
+sufficient for us to analyze the scalp EEG data. We require additional metadata, which will be
+facilitated by following the BIDS protocol.
 
-2. Raw data is stored in the `<bids_root>` of the data 
-directory. Raw data format is in BrainVision, or EDF format.
+1. Raw EDF data is initially to be stored in the `<bids_root>/sourcedata/` folder.
 
-3. ICA preprocessing is done in `eeglab`, where data is then output in the `.set` data format.
-    episcalp/preprocess/matlab/run_me.m
+2. BIDS-conversion (source EDF data): Using `mne-bids`, we will convert data to BIDS format of the raw EEG data.
+
+3. (Temporary - Matlab Auto-ICA) Since auto-ICA currently sits in EEGLab with the MATLAB module, we can run auto-ICA on 
+the raw EDF data. During this, data is notch filtered, and bandpass filtered between 1-30 Hz (to remove
+higher frequency muscle artifacts). Then auto-ICA will try to remove stereotypical artifacts.
+   - ICA preprocessing is done in `eeglab`, where data is then output in the `.set` data format. 
+   - episcalp/preprocess/matlab/run_me.m
+   
+4. BIDS-conversion (ICA-cleaned EDF data): Using `mne-bids`, we will convert ICA-cleaned-data to BIDS format of the raw EEG data. Data
+will be stored in EDF format.
+
 
 4. ICA preprocessed data will be written to `<bids_root>/derivatives/` folder using `mne_bids` copy_eeglab function to convert to BIDS.
     episcalp/bids/run_bids_conversion_ica.py.
@@ -32,6 +42,11 @@ directory. Raw data format is in BrainVision, or EDF format.
 6. Feature generation code is stored in a subfolder of episcalp
 
 7. Scripts that assist in IO of intermediate results (specifically for notebooks) is located within sample_code
+
+High level details that remain to be sorted out are the inclusion of Persyst spikes:
+
+- should we perform Persyst spike detection before, or after ICA cleaning?
+
 
 Installation Guide
 ==================
@@ -46,6 +61,7 @@ Setup environment from pipenv
    pipenv install --dev
 
    # if dev versions are needed
+   pip install https://api.github.com/repos/mne-tools/mne-python/zipball/master
    pipenv install https://api.github.com/repos/mne-tools/mne-bids/zipball/master
 
 If you're using some private repos, such as ``eztrack``, here's some helper code
