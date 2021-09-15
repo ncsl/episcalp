@@ -16,7 +16,8 @@ def convert_jeffersion_to_bids():
     # root = Path(
     # "D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents - HEP Data")
     root = Path("D:/OneDriveParent/Johns Hopkins/Jefferson_Scalp - Documents/root")
-    source_root = Path("D:/OneDriveParent/Johns Hopkins/Jefferson_Scalp - Documents/root/sourcedata")
+    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root")
+    source_root = root / "sourcedata"
 
     # epilepsy source data from JHH is organized into three sub-folders
     # 0xx is non epilepsy
@@ -97,7 +98,7 @@ def _convert_folder(
         print(f"Fpaths: {fpaths}")
 
         og_subject = subject
-        subject = _map_subject_to_exp(subject, root)
+        subject = _map_subject_to_exp(subject, root / "sourcedata")
 
         # get experimental condition
         if subject.startswith("0"):
@@ -167,7 +168,7 @@ def _convert_folder(
                 og_subject,
                 description="Original subject ID provided by the clinician",
                 levels=None,
-                units=None
+                units=None,
             )
 
             # add original scan name to scans.tsv

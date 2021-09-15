@@ -53,7 +53,6 @@ def run_row_analysis(
         fig_basename = perturb_deriv_fpath.with_suffix(".pdf").name
 
         # bids_path.update(suffix="channels", extension=".tsv")
-
         # read in sidecar channels.tsv
         # channels_pd = pd.read_csv(bids_path.fpath, sep="\t")
         # description_chs = pd.Series(

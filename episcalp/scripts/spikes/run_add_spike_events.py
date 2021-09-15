@@ -52,7 +52,7 @@ def _extract_spike_annotations(raw_persyst):
 
 def add_spikes_jhh():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
-    spike_root = root / "derivatives" / "spikes" / "monopolar"
+    spike_root = root / "derivatives" / "spikes"
     site_id = "jhh"
 
     extension = ".edf"
@@ -61,7 +61,7 @@ def add_spikes_jhh():
 
     # get all subjects
     subjects = get_entity_vals(spike_root, "subject")
-    subjects = [f"{site_id}{subject}" for subject in subjects]
+    subjects = [f"{subject}" for subject in subjects]
 
     for subject in subjects:
         bids_path_ = BIDSPath(
@@ -76,8 +76,7 @@ def add_spikes_jhh():
         if fpaths == []:
             raise RuntimeError(f"The parameters {bids_path_} do not match anything")
 
-        sub = subject.split(site_id)[1]
-        spike_sub = f"sub-{sub}"
+        spike_sub = f"sub-{subject}"
         # read the original raw file
         for bids_path in fpaths:
             print(f"Adding spikes for {bids_path}")
@@ -89,7 +88,7 @@ def add_spikes_jhh():
             spike_dir = Path(spike_root) / spike_sub
             task = bids_path.task
 
-            spike_fpath = list(spike_dir.glob(f"{spike_sub}_*run-{run}_spikes.lay"))
+            spike_fpath = list(spike_dir.glob(f"{spike_sub}_*run-{run}_eeg-spikes.lay"))
             if len(spike_fpath) > 1 or len(spike_fpath) == 0:
                 if task == "asleep":
                     task = "sleep"
