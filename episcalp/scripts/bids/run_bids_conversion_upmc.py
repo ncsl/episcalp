@@ -16,7 +16,7 @@ def convert_upmc_to_bids():
     root = Path("D:/OneDriveParent/Johns Hopkins/UPMC_Scalp - Documents/scalp_study/root")
     source_root = root / "sourcedata"
 
-    # epilepsy source data from JHH is organized into three sub-folders
+    # epilepsy source data from UPMC is organized into three sub-folders
     # 0xx is non epilepsy
     # 1xx is epilepsy normal
     # 2xx is epilepsy abnormal
