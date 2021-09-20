@@ -29,6 +29,7 @@ def run_sourcesink_analysis(
     resample_sfreq=None,
     deriv_path=None,
     figures_path=None,
+    figure_ext='.pdf',
     verbose=True,
     overwrite=False,
     plot_heatmap=True,
@@ -55,7 +56,7 @@ def run_sourcesink_analysis(
             f"Skipping..."
         )
         return
-
+    print(bids_path)
     # load in raw data
     raw = read_scalp_eeg(
         bids_path,
@@ -76,7 +77,7 @@ def run_sourcesink_analysis(
         "stepsize": 250,
     }
     # run heatmap
-    ss_deriv, state_arr_deriv = lds_raw_sourcesink(
+    ss_deriv, sink_deriv, state_arr_deriv = lds_raw_sourcesink(
         raw,
         reference=reference,
         return_all=True,
@@ -93,8 +94,8 @@ def run_sourcesink_analysis(
     # normalize and plot heatmap
     if plot_heatmap:
         figures_path.mkdir(exist_ok=True, parents=True)
-        ss_deriv.normalize()
-        fig_basename = ss_deriv_fpath.with_suffix(".pdf").name
+        #ss_deriv.normalize()
+        fig_basename = ss_deriv_fpath.with_suffix(figure_ext).name
 
         bids_path.update(suffix="channels", extension=".tsv")
 
@@ -125,7 +126,7 @@ def run_sourcesink_analysis(
             figure_fpath=(figures_path / fig_basename),
         )
 
-        fig_basename = fig_basename.replace(".pdf", "_topomap.pdf")
+        fig_basename = fig_basename.replace(figure_ext, f"_topomap{figure_ext}")
         ss_deriv.plot_topomap(
             # soz_chs=resected_chs,
             cbarlabel="Fragility",
@@ -147,3 +148,37 @@ def run_post_analysis(deriv_path=None, subject=None, features=None):
     generate_patient_features(
         deriv_path, "sourcesink", features, subjects=subjects, verbose=True
     )
+
+
+if __name__ == "__main__":
+    root = Path("D:/OneDriveParent/Johns Hopkins/Jefferson_Scalp - Documents/root/derivatives/ICA/1-30Hz-30/win-20")
+    deriv_root = Path("D:/OneDriveParent/Johns Hopkins/Jefferson_Scalp - Documents/root/derivatives")
+    figures_root = deriv_root
+    figure_ext = ".png"
+
+    subjects = get_entity_vals(root, 'subject')
+    for subject in subjects:
+        ignore_subjects = [sub for sub in subjects if sub is not subject]
+        sessions = get_entity_vals(root, 'session', ignore_subjects=ignore_subjects)
+        if len(sessions) == 0:
+            sessions = [None]
+        for session in sessions:
+            ignore_sessions = [ses for ses in sessions if ses is not session]
+            tasks = get_entity_vals(root, 'task', ignore_subjects=ignore_subjects, ignore_sessions=ignore_sessions)
+            if len(tasks) == 0:
+                tasks = [None]
+            for task in tasks:
+                ignore_tasks = [tsk for tsk in tasks if tsk is not task]
+                runs = get_entity_vals(root, 'run', ignore_subjects=ignore_subjects, ignore_sessions=ignore_sessions, ignore_tasks=ignore_tasks)
+                for run in runs:
+                    bids_params = {
+                        "subject": subject,
+                        "session": session,
+                        "task": task,
+                        "run": run,
+                        "datatype": "eeg",
+                        "extension": ".edf",
+                    }
+                    bids_path = BIDSPath(root=root, **bids_params)
+                    run_sourcesink_analysis(bids_path, deriv_path=deriv_root, figures_path=figures_root,
+                                            resample_sfreq=256, overwrite=True, figure_ext=figure_ext)
