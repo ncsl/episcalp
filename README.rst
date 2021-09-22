@@ -63,6 +63,9 @@ Setup environment from pipenv
    # if dev versions are needed
    pipenv install https://api.github.com/repos/mne-tools/mne-bids/zipball/master
 
+
+   pip install https://api.github.com/repos/neurodatadesign/manifold_random_forests/zipball/master
+   
 If you're using some private repos, such as ``eztrack``, here's some helper code
 for installing.
 
