@@ -2,7 +2,8 @@ from pathlib import Path
 import pandas as pd
 import json
 
-from utils import update_participants_info
+
+from episcalp.bids.utils import update_participants_info
 
 from mne_bids import get_entity_vals
 
@@ -16,6 +17,7 @@ def main():
         / "sourcedata"
     )
 
+    site = 'jhh'
     record_id_map_fname = source_dir / "jhu_pt_map.json"
     excel_metadata_fpath = source_dir / "JHU-metadata_June2021.xlsx"
 
@@ -45,18 +47,29 @@ def main():
         if subject not in subjects:
             continue
 
-        for key, description in columns.items():
-            value = row[key]
-            if pd.isnull(value):
-                value = "n/a"
-            update_participants_info(
-                root=bids_root,
-                subject=subject,
-                key=key,
-                value=value,
-                description=description,
-            )
+        _update_site(bids_root, subject, site)
 
+        # for key, description in columns.items():
+        #     value = row[key]
+        #     if pd.isnull(value):
+        #         value = "n/a"
+        #     update_participants_info(
+        #         root=bids_root,
+        #         subject=subject,
+        #         key=key,
+        #         value=value,
+        #         description=description,
+        #     )
+
+def _update_site(bids_root, subject, site):
+
+    update_participants_info(
+        root=bids_root,
+        subject=subject,
+        key='site',
+        value=site,
+        description='Clinical center at which subject was from',
+    )
 
 if __name__ == "__main__":
     main()
