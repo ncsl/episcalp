@@ -38,10 +38,11 @@ def convert_jeffersion_to_bids():
     overwrite = False
     verbose = False
 
-    for source_dir in [non_epi_src, epi_norm_src, epi_abnorm_src]:
+    for condition, source_dir in enumerate([non_epi_src, epi_norm_src, epi_abnorm_src]):
         _convert_folder(
             source_dir,
             root,
+            condition,
             subj_site,
             datatype,
             montage,
@@ -55,14 +56,15 @@ def convert_jeffersion_to_bids():
 def _extract_meta_from_fname(fpath):
     # Will probably need more later but for now this works
     _, site_id, _, session, _, run = fpath.name.split(" ")
+    run = run.split(".")[0]
     return site_id, session, run
 
 
-def _map_subject_to_exp(subject, source_root):
-    excel_fpath = source_root / "Jefferson_scalp_clinical_datasheet.xlsx"
+def _map_subject_to_exp(subject, source_root, condition):
+    excel_fpath = source_root / "sourcedata" / "Jefferson_scalp_clinical_datasheet.xlsx"
     metadata = pd.read_excel(Path(excel_fpath))
 
-    sub_row = metadata.loc[metadata["hospital_id"] == int(subject)].iloc[0, :]
+    sub_row = metadata.loc[(metadata["hospital_id"] == int(subject)) & (metadata["Group"] == condition)].iloc[0, :]
 
     new_id = str(sub_row["patient_id"]).zfill(3)
     return new_id
@@ -71,6 +73,7 @@ def _map_subject_to_exp(subject, source_root):
 def _convert_folder(
     source_dir,
     root,
+    condition,
     subj_site,
     datatype,
     montage,
@@ -97,7 +100,7 @@ def _convert_folder(
         print(f"Fpaths: {fpaths}")
 
         og_subject = subject
-        subject = _map_subject_to_exp(subject, root)
+        subject = _map_subject_to_exp(subject, root, condition)
 
         # get experimental condition
         if subject.startswith("0"):
@@ -116,7 +119,7 @@ def _convert_folder(
             # extract rule for site, session, and run
             site_id, session, run_id = _extract_meta_from_fname(fpath)
 
-            run_id = idx + 1
+            #run_id = idx + 1
             bids_kwargs = {
                 "subject": subject,
                 "session": session,
