@@ -28,8 +28,13 @@ def _extract_spike_annotations(raw_persyst):
     for ind, annot in enumerate(annotations):
         onsets[ind] = annot.get("onset", 0)
         description_ = annot.get("description", "")
-        if description_.startswith("spike"):
-            spike, ch, duration = description_.split(" ")
+        if (description_.startswith("spike ")) or (description_.startswith("spikegen")):
+            if description_.count(" ") == 2:
+                spike, ch, duration = description_.split(" ")
+            else:
+                raise RuntimeError(
+                    f"Description: {description_} has more then 2 spaces..."
+                )
 
             # found a spike burst which is labeled differently in Persyst...
             if duration.endswith("s"):
@@ -50,10 +55,10 @@ def _extract_spike_annotations(raw_persyst):
     return annotations_
 
 
-def add_spikes_jhh():
+def add_spikes_for_sites():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
-    spike_root = root / "derivatives" / "spikes" / "monopolar"
-    site_id = "jhh"
+    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    spike_root = root / "derivatives" / "spikes"
 
     extension = ".edf"
     datatype = "eeg"
@@ -61,7 +66,7 @@ def add_spikes_jhh():
 
     # get all subjects
     subjects = get_entity_vals(spike_root, "subject")
-    subjects = [f"{site_id}{subject}" for subject in subjects]
+    subjects = [f"{subject}" for subject in subjects]
 
     for subject in subjects:
         bids_path_ = BIDSPath(
@@ -76,27 +81,33 @@ def add_spikes_jhh():
         if fpaths == []:
             raise RuntimeError(f"The parameters {bids_path_} do not match anything")
 
-        sub = subject.split(site_id)[1]
-        spike_sub = f"sub-{sub}"
+        spike_sub = f"sub-{subject}"
         # read the original raw file
         for bids_path in fpaths:
-            print(f"Adding spikes for {bids_path}")
+            print(f"\n\nAdding spikes for {bids_path}")
 
-            raw_src = read_raw_bids(bids_path)
+            raw_src = read_raw_bids(bids_path, verbose=False)
+            annotations = raw_src.annotations
             run = bids_path.run
 
             # Read in persyst data that contains spike information
             spike_dir = Path(spike_root) / spike_sub
             task = bids_path.task
 
-            spike_fpath = list(spike_dir.glob(f"{spike_sub}_*run-{run}_spikes.lay"))
+            spike_fpath = list(spike_dir.glob(f"{spike_sub}_*run-{run}_eeg_spikes.lay"))
             if len(spike_fpath) > 1 or len(spike_fpath) == 0:
                 if task == "asleep":
                     task = "sleep"
+                print(f"Re-searching with task. {spike_fpath}")
+                print(f"Search string was: {spike_sub}_*run-{run}_eeg_spikes.lay")
                 search_str = f"{spike_sub}_*{task}*_spikes.lay"
                 spike_fpath = list(spike_dir.glob(search_str))
                 if len(spike_fpath) > 1:
                     assert False
+            if spike_fpath == []:
+                raise RuntimeError(
+                    f"No spike files found for {bids_path} in {spike_dir}."
+                )
 
             spike_fpath = spike_fpath[0]
             raw_persyst = mne.io.read_raw_persyst(spike_fpath)
@@ -105,18 +116,36 @@ def add_spikes_jhh():
             spike_annotations = _extract_spike_annotations(raw_persyst)
 
             # add them to the raw file
-            annotations = raw_src.annotations
+            # Note: Does not support writing the channel name to annotation
+            # as of MNE v0.23+
+            wrote_annotations = False
+            for idx, annot in enumerate(spike_annotations):
+                if annot["description"] not in annotations.description:
+                    # if annot['description'].startswith('@Warning'):
+                    #     continue
+                    # print(f'Appending {annot}')
+                    # print(annotations.description)
+                    # assert False
+                    annotations.append(
+                        annot["onset"], annot["duration"], annot["description"]
+                    )
+                    wrote_annotations = True
 
-            if any([annots in annotations for annots in spike_annotations]):
+            if (
+                not wrote_annotations
+            ):  # any([annots in annotations for annots in spike_annotations]):
                 print(f"Already there for {bids_path}")
                 continue
 
-            annotations = annotations + spike_annotations
+            # annotations = annotations + spike_annotations
             raw_src.set_annotations(annotations)
 
             # write to BIDS and overwrite existing dataset
-            write_raw_bids(raw_src, bids_path, overwrite=True, format="EDF")
+            print("Writing new spike events to {bids_path}")
+            write_raw_bids(
+                raw_src, bids_path, overwrite=True, format="EDF", verbose=False
+            )
 
 
 if __name__ == "__main__":
-    add_spikes_jhh()
+    add_spikes_for_sites()

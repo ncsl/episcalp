@@ -1,4 +1,0 @@
-{
-    "python.pythonPath": ".venv/bin/python",
-    "restructuredtext.confPath": "${workspaceFolder}/.venv/lib/python3.9/site-packages/numpydoc/tests/tinybuild"
-}

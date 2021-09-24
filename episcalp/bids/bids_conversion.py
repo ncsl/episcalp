@@ -77,10 +77,6 @@ def write_epitrack_bids(
     # Read in raw data into an mne.io.Raw object
     raw = _reader(source_path)
 
-    print("\n\n")
-    print(np.argwhere(np.isnan(raw.get_data())))
-    print(raw._orig_units)
-    print(raw)
     # Get events from the raw data structure
     events, events_id = mne.events_from_annotations(raw, event_id=None)
     _events_id = events_id.copy()
@@ -120,6 +116,7 @@ def write_epitrack_bids(
             logger.exception(e)
 
     # Write the data to a file
+    print(f"WRiting to {bids_path}")
     bids_fpath = write_raw_bids(
         raw,
         bids_path,

@@ -61,6 +61,7 @@ Setup environment from pipenv
    pipenv install --dev
 
    # if dev versions are needed
+   pip install https://api.github.com/repos/mne-tools/mne-python/zipball/master
    pipenv install https://api.github.com/repos/mne-tools/mne-bids/zipball/master
 
    # pip install for oblique random forests

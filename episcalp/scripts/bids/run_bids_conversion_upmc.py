@@ -12,14 +12,11 @@ from episcalp.bids.bids_conversion import (
 from episcalp.bids.utils import update_participants_info
 
 
-def convert_jeffersion_to_bids():
-    # root = Path(
-    # "D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents - HEP Data")
-    root = Path("D:/OneDriveParent/Johns Hopkins/Jefferson_Scalp - Documents/root")
-    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root")
+def convert_upmc_to_bids():
+    root = Path("D:/OneDriveParent/Johns Hopkins/UPMC_Scalp - Documents/scalp_study/root")
     source_root = root / "sourcedata"
 
-    # epilepsy source data from JHH is organized into three sub-folders
+    # epilepsy source data from UPMC is organized into three sub-folders
     # 0xx is non epilepsy
     # 1xx is epilepsy normal
     # 2xx is epilepsy abnormal
@@ -28,7 +25,7 @@ def convert_jeffersion_to_bids():
     epi_abnorm_src = source_root / "epilepsy-with-abnormalities"
 
     # site ID prefix to subject IDs
-    subj_site = "jeff"
+    subj_site = "upmc"
 
     # define BIDS identifiers
     datatype = "eeg"
@@ -39,11 +36,10 @@ def convert_jeffersion_to_bids():
     overwrite = False
     verbose = False
 
-    for condition, source_dir in enumerate([non_epi_src, epi_norm_src, epi_abnorm_src]):
+    for source_dir in [non_epi_src, epi_norm_src, epi_abnorm_src]:
         _convert_folder(
             source_dir,
             root,
-            condition,
             subj_site,
             datatype,
             montage,
@@ -54,18 +50,11 @@ def convert_jeffersion_to_bids():
         )
 
 
-def _extract_meta_from_fname(fpath):
-    # Will probably need more later but for now this works
-    _, site_id, _, session, _, run = fpath.name.split(" ")
-    run = run.split(".")[0]
-    return site_id, session, run
-
-
-def _map_subject_to_exp(subject, source_root, condition):
-    excel_fpath = source_root / "sourcedata" / "Jefferson_scalp_clinical_datasheet.xlsx"
+def _map_subject_to_exp(subject, source_root):
+    excel_fpath = source_root / "UPMC_scalp_clinical_datasheet.xlsx"
     metadata = pd.read_excel(Path(excel_fpath))
 
-    sub_row = metadata.loc[(metadata["hospital_id"] == int(subject)) & (metadata["Group"] == condition)].iloc[0, :]
+    sub_row = metadata.loc[metadata["hospital_id"] == int(subject)].iloc[0, :]
 
     new_id = str(sub_row["patient_id"]).zfill(3)
     return new_id
@@ -74,7 +63,6 @@ def _map_subject_to_exp(subject, source_root, condition):
 def _convert_folder(
     source_dir,
     root,
-    condition,
     subj_site,
     datatype,
     montage,
@@ -85,23 +73,20 @@ def _convert_folder(
 ):
     subjects = []
     for idx, fpath in enumerate(source_dir.glob("*.edf")):
-        print(f"Fpath: {fpath}")
         if " " in fpath.name:
             # source subject ID
             subject_id = fpath.name.split(" ")[0]
         else:
             subject_id = fpath.name.split(".")[0]
         subjects.append(subject_id)
-    print(f"Subjects: {subjects}")
 
     # run BIDS conversion for each set of files
     for subject in subjects:
         fpaths = [fpath for fpath in source_dir.glob("*.edf")]
-        fpaths = [f for f in fpaths if f.name[0] == subject]
-        print(f"Fpaths: {fpaths}")
+        fpaths = [f for f in fpaths if f.name.split(".")[0] == subject]
 
         og_subject = subject
-        subject = _map_subject_to_exp(subject, root, condition)
+        subject = _map_subject_to_exp(subject, root / "sourcedata")
 
         # get experimental condition
         if subject.startswith("0"):
@@ -117,13 +102,12 @@ def _convert_folder(
         subject = f"{subj_site}{subject}"
 
         for idx, fpath in enumerate(fpaths):
-            # extract rule for site, session, and run
-            site_id, session, run_id = _extract_meta_from_fname(fpath)
 
-            #run_id = idx + 1
+            site_id = 'upmc'
+
+            run_id = idx + 1
             bids_kwargs = {
                 "subject": subject,
-                "session": session,
                 "run": run_id,
                 "datatype": datatype,
                 "suffix": datatype,
@@ -132,7 +116,6 @@ def _convert_folder(
             if bids_path.fpath.exists() and not overwrite:
                 print("Skipping...", bids_path)
                 continue
-
             bids_path = write_epitrack_bids(
                 source_path=fpath,
                 bids_path=bids_path,
@@ -149,7 +132,7 @@ def _convert_folder(
                 subject,
                 "site",
                 site_id,
-                description="Jefferson",
+                description="UPMC",
                 levels=None,
                 units=None,
             )
@@ -179,4 +162,4 @@ def _convert_folder(
 
 
 if __name__ == "__main__":
-    convert_jeffersion_to_bids()
+    convert_upmc_to_bids()
