@@ -1,5 +1,5 @@
 function channel_list = getMontageChannels(labels)
-    montage_channels = make_standard1020_montage();
+    montage_channels = make_standard1020_montage(false);
     channel_list = {};
     for index = 1:length(labels)
         label = string(labels{index});
