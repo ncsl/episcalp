@@ -28,7 +28,13 @@ def _extract_spike_annotations(raw_persyst):
     for ind, annot in enumerate(annotations):
         onsets[ind] = annot.get("onset", 0)
         description_ = annot.get("description", "")
-        if (description_.startswith("spike ")) or (description_.startswith("spikegen")):
+
+        # contains the @ and (Peryst) symbol - only if Persyst ran by
+        # clinicians in their own hospital
+        # contains_spike = ((description_.startswith("@Spike "))
+        #                   or (description_.startswith("@SpikeGen")))
+
+        if ((description_.startswith("Spike ")) or (description_.startswith("SpikeGen")) and onsets[ind] != 0):
             if description_.count(" ") == 2:
                 spike, ch, duration = description_.split(" ")
             else:
@@ -66,7 +72,8 @@ def add_spikes_for_sites():
 
     # get all subjects
     subjects = get_entity_vals(spike_root, "subject")
-    subjects = [f"{subject}" for subject in subjects]
+    # subjects = [f"{site_id}{subject}" for subject in subjects]
+    # subjects = ['jhh001']
 
     for subject in subjects:
         bids_path_ = BIDSPath(
@@ -79,7 +86,8 @@ def add_spikes_for_sites():
 
         fpaths = bids_path_.match(check=True)
         if fpaths == []:
-            raise RuntimeError(f"The parameters {bids_path_} do not match anything")
+            raise RuntimeError(
+                f"The parameters {bids_path_} do not match anything")
 
         spike_sub = f"sub-{subject}"
         # read the original raw file
@@ -94,12 +102,16 @@ def add_spikes_for_sites():
             spike_dir = Path(spike_root) / spike_sub
             task = bids_path.task
 
-            spike_fpath = list(spike_dir.glob(f"{spike_sub}_*run-{run}_eeg_spikes.lay"))
+            spike_fpath = list(spike_dir.glob(
+                f"{spike_sub}_*run-{run}_spikes.lay"))
+
+            print(f'Initially found paths: {spike_fpath}.')
             if len(spike_fpath) > 1 or len(spike_fpath) == 0:
                 if task == "asleep":
                     task = "sleep"
                 print(f"Re-searching with task. {spike_fpath}")
-                print(f"Search string was: {spike_sub}_*run-{run}_eeg_spikes.lay")
+                print(
+                    f"Search string was: {spike_sub}_*run-{run}_eeg_spikes.lay")
                 search_str = f"{spike_sub}_*{task}*_spikes.lay"
                 spike_fpath = list(spike_dir.glob(search_str))
                 if len(spike_fpath) > 1:
@@ -120,16 +132,21 @@ def add_spikes_for_sites():
             # as of MNE v0.23+
             wrote_annotations = False
             for idx, annot in enumerate(spike_annotations):
-                if annot["description"] not in annotations.description:
+                # only looking at spikes
+                if 'spike' not in annot['description'].lower():
+                    continue
+
+                if annot["description"] in annotations.description and annot['onset'] in annotations.onset:
+                    continue
                     # if annot['description'].startswith('@Warning'):
                     #     continue
                     # print(f'Appending {annot}')
                     # print(annotations.description)
                     # assert False
-                    annotations.append(
-                        annot["onset"], annot["duration"], annot["description"]
-                    )
-                    wrote_annotations = True
+                annotations.append(
+                    annot["onset"], annot["duration"], annot["description"]
+                )
+                wrote_annotations = True
 
             if (
                 not wrote_annotations
