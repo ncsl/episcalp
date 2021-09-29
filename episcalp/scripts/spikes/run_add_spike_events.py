@@ -38,6 +38,7 @@ def _extract_spike_annotations(raw_persyst):
             if description_.count(" ") == 2:
                 spike, ch, duration = description_.split(" ")
             else:
+                continue
                 raise RuntimeError(
                     f"Description: {description_} has more then 2 spaces..."
                 )
@@ -60,10 +61,14 @@ def _extract_spike_annotations(raw_persyst):
     )
     return annotations_
 
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = np.argsort(abs(array - value))[0]
+    return array[idx]
 
 def add_spikes_for_sites():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
-    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
     spike_root = root / "derivatives" / "spikes"
 
     extension = ".edf"
@@ -103,7 +108,7 @@ def add_spikes_for_sites():
             task = bids_path.task
 
             spike_fpath = list(spike_dir.glob(
-                f"{spike_sub}_*run-{run}_spikes.lay"))
+                f"{spike_sub}_*run-{run}_eeg_spikes.lay"))
 
             print(f'Initially found paths: {spike_fpath}.')
             if len(spike_fpath) > 1 or len(spike_fpath) == 0:
@@ -136,7 +141,12 @@ def add_spikes_for_sites():
                 if 'spike' not in annot['description'].lower():
                     continue
 
-                if annot["description"] in annotations.description and annot['onset'] in annotations.onset:
+                # print(annot['description'], annot['onset'])
+                # print(annotations.description)
+                # print(annotations.onset)
+                nearest_onset = find_nearest(annotations.onset, annot['onset'])
+                if annot["description"] in annotations.description and ((annot['onset'] - nearest_onset) < 0.01):
+                    print('\nskipping...')
                     continue
                     # if annot['description'].startswith('@Warning'):
                     #     continue

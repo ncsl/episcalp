@@ -1,5 +1,6 @@
 from mne import Annotations
 
+from ...preprocess.montage import get_standard_1020_channels
 
 def _annotlist_to_annots(annot_list):
     for idx in range(len(annot_list)):
@@ -31,6 +32,8 @@ def _get_spike_annots(raw, verbose=True):
     description = []
     ch_names = []
 
+    standard_chs = get_standard_1020_channels()
+
     # loop through annotations
     for annot in raw.annotations:
         annot = Annotations(**annot)
@@ -38,6 +41,14 @@ def _get_spike_annots(raw, verbose=True):
         if curr_desc.startswith('Spike ') or curr_desc.startswith('SpikeGen'):
             # or curr_desc.startswith('@Spike ') or curr_desc.startswith('@SpikeGen'):
             desc, ch_name = _process_annot(annot)
+
+            # only standard_1020 montage is supported rn
+            if ch_name not in standard_chs:
+                continue
+            # we want to remove midline contacts rn because
+            # Bayview doesn't use them
+            if ch_name in ['Cz', 'Pz', 'Fz']:
+                continue
 
             onsets.extend(annot.onset)
             durations.extend(annot.duration)

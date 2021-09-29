@@ -15,7 +15,8 @@ from episcalp.bids.utils import update_participants_info
 def convert_jeffersion_to_bids():
     # root = Path(
     # "D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents - HEP Data")
-    root = Path("D:/OneDriveParent/Johns Hopkins/Jefferson_Scalp - Documents/root")
+    root = Path(
+        "D:/OneDriveParent/Johns Hopkins/Jefferson_Scalp - Documents/root")
     root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root")
     source_root = root / "sourcedata"
 
@@ -39,7 +40,8 @@ def convert_jeffersion_to_bids():
     overwrite = False
     verbose = False
 
-    for condition, source_dir in enumerate([non_epi_src, epi_norm_src, epi_abnorm_src]):
+    for condition, source_dir in enumerate([non_epi_src, epi_norm_src, epi_abnorm_src
+                                            ]):
         _convert_folder(
             source_dir,
             root,
@@ -62,10 +64,12 @@ def _extract_meta_from_fname(fpath):
 
 
 def _map_subject_to_exp(subject, source_root, condition):
-    excel_fpath = source_root / "sourcedata" / "Jefferson_scalp_clinical_datasheet.xlsx"
+    excel_fpath = source_root / "sourcedata" / \
+        "Jefferson_scalp_clinical_datasheet.xlsx"
     metadata = pd.read_excel(Path(excel_fpath))
 
-    sub_row = metadata.loc[(metadata["hospital_id"] == int(subject)) & (metadata["Group"] == condition)].iloc[0, :]
+    sub_row = metadata.loc[(metadata["hospital_id"] == int(subject)) & (
+        metadata["Group"] == condition)].iloc[0, :]
 
     new_id = str(sub_row["patient_id"]).zfill(3)
     return new_id
@@ -96,8 +100,9 @@ def _convert_folder(
 
     # run BIDS conversion for each set of files
     for subject in subjects:
+        print(f'\n\nConverting {subject}')
         fpaths = [fpath for fpath in source_dir.glob("*.edf")]
-        fpaths = [f for f in fpaths if f.name[0] == subject]
+        fpaths = [f for f in fpaths if f.name.split(' ')[0] == subject]
         print(f"Fpaths: {fpaths}")
 
         og_subject = subject
@@ -111,7 +116,8 @@ def _convert_folder(
         elif subject.startswith("2"):
             exp_condition = "epilepsy-with-abnormalities"
         else:
-            raise RuntimeError(f"There is an issue with this subject  {subject}")
+            raise RuntimeError(
+                f"There is an issue with this subject  {subject}")
 
         # prefix it with site id
         subject = f"{subj_site}{subject}"
@@ -175,7 +181,8 @@ def _convert_folder(
             )
 
             # add original scan name to scans.tsv
-            append_original_fname_to_scans(fpath.name, root, bids_path.basename)
+            append_original_fname_to_scans(
+                fpath.name, root, bids_path.basename)
 
 
 if __name__ == "__main__":
