@@ -9,17 +9,16 @@ from mne_bids import get_entity_vals
 
 
 def main():
-    bids_root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/90Hz-10/")
+    bids_root = Path("D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents/bids")
     # bids_root = Path(
     #     '/Users/adam2392/Johns Hopkins/Patrick E Myers - scalp_jhu_bids/')
     source_dir = (
-        Path("/Users/adam2392/Johns Hopkins/Patrick E Myers - scalp_jhu_bids/")
-        / "sourcedata"
+        bids_root / "sourcedata"
     )
 
-    site = 'jhh'
+    site_pref = 'jhh'
     record_id_map_fname = source_dir / "jhu_pt_map.json"
-    excel_metadata_fpath = source_dir / "JHU-metadata_June2021.xlsx"
+    excel_metadata_fpath = source_dir / "JHU_scalp_clinical_datasheet_raw_local.xlsx"
 
     # read in record ID mapping
     with open(record_id_map_fname, "r") as fin:
@@ -41,10 +40,18 @@ def main():
     print("All the subjects are: ", subjects)
 
     for idx, row in meta_df.iterrows():
-        record_id = row["Record ID"]
-        subject = record_map[str(record_id)]
+        record_id = row["hospital_id"]
+        site = row["CLINICAL_CENTER"]
+        if site == "jhh":
+            site = "JHH"
+        else:
+            site = "BV"
+        subject = str(row["patient_id"]).zfill(3)
+        if site_pref not in str(subject):
+            subject = f"{site_pref}{subject}"
 
         if subject not in subjects:
+            print(f"Skipping {subject}")
             continue
 
         _update_site(bids_root, subject, site)
@@ -61,6 +68,7 @@ def main():
         #         description=description,
         #     )
 
+
 def _update_site(bids_root, subject, site):
 
     update_participants_info(
@@ -70,6 +78,7 @@ def _update_site(bids_root, subject, site):
         value=site,
         description='Clinical center at which subject was from',
     )
+
 
 if __name__ == "__main__":
     main()
