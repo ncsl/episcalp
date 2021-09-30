@@ -96,14 +96,14 @@ def read_scalp_eeg(
     nyq_freq = raw.info["sfreq"] // 2 - 1
     line_freq = raw.info["line_freq"]
     l_freq = 1.0
-    h_freq = min(55, nyq_freq)
+    h_freq = min(30, nyq_freq)
     raw.filter(l_freq=l_freq, h_freq=h_freq, verbose=verbose)
 
     # 2. filter data - notch filter [PowerLineFrequency]
     # usually 60 Hz in USA and 50 Hz in Europe
-    if h_freq > line_freq:
-        freqs = np.arange(line_freq, nyq_freq, line_freq)
-        raw.notch_filter(freqs=freqs, method="fir", verbose=verbose)
+    # if h_freq > line_freq:
+    #     freqs = np.arange(line_freq, nyq_freq, line_freq)
+    #     raw.notch_filter(freqs=freqs, method="fir", verbose=verbose)
 
     # 3. set reference
     if reference == "average":
