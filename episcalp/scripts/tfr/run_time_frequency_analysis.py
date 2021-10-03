@@ -23,6 +23,7 @@ logger.setLevel(logging.DEBUG)
 
 def main():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
+    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
     deriv_root = root / "derivatives"
     bids_root = deriv_root / 'ICA' / '1-30Hz-30' / 'win-20'
 
@@ -38,8 +39,6 @@ def main():
     }
     freq_band = 'delta'
 
-    deriv_chain = Path('tfr') / freq_band
-
     datatype = "eeg"
     extension = ".edf"
     n_jobs = -1
@@ -51,46 +50,50 @@ def main():
     # get the runs for this subject
     all_subjects = get_entity_vals(bids_root, "subject")
 
-    for subject in all_subjects:
-        if subject in IGNORE_SUBJECTS:
-            continue
+    freq_bands = ['delta', 'theta', 'alpha', 'beta']
+    for freq_band in freq_bands:
+        deriv_chain = Path('tfr') / freq_band
 
-        ignore_subs = [sub for sub in all_subjects if sub != subject]
-        subj_dir = bids_root / f"sub-{subject}"
-
-        fpaths = list(subj_dir.rglob('*.edf'))
-
-        print(f"Found filepaths for {subject}: {fpaths}.")
-
-        for idx, fpath in enumerate(fpaths):
-            entities = get_entities_from_fname(fpath.name)
-
-            # create path for the dataset
-            bids_path = BIDSPath(
-                **entities,
-                datatype=datatype,
-                root=bids_root,
-                extension=extension,
-            )
-            print(f"Analyzing {bids_path}")
-            deriv_fpath = deriv_root / deriv_chain / f'sub-{subject}' / bids_path.copy().update(
-                check=False, suffix=f'desc-{freq_band}_eeg-tfr', extension='.h5').basename
-            deriv_fpath.parent.mkdir(exist_ok=True, parents=True)
-            if deriv_fpath.exists() and not overwrite:
+        for subject in all_subjects:
+            if subject in IGNORE_SUBJECTS:
                 continue
 
-            raw = read_scalp_eeg(bids_path, reference=reference)
+            ignore_subs = [sub for sub in all_subjects if sub != subject]
+            subj_dir = bids_root / f"sub-{subject}"
 
-            # run TFR analysis
-            epochs = make_fixed_length_epochs(raw, duration=2, overlap=1)
-            freqs = FREQ_BANDS[freq_band]
+            fpaths = list(subj_dir.rglob('*.edf'))
 
-            # compute multitaper FFT
-            epochs_tfr  = tfr_multitaper(epochs, freqs, n_jobs=n_jobs, n_cycles = freqs/2., return_itc=False, average=False)
-            
-            # save the output object to disc        
-            print(f'Saving to {deriv_fpath}')
-            epochs_tfr.save(deriv_fpath)
+            print(f"Found filepaths for {subject}: {fpaths}.")
+
+            for idx, fpath in enumerate(fpaths):
+                entities = get_entities_from_fname(fpath.name)
+
+                # create path for the dataset
+                bids_path = BIDSPath(
+                    **entities,
+                    datatype=datatype,
+                    root=bids_root,
+                    extension=extension,
+                )
+                print(f"Analyzing {bids_path}")
+                deriv_fpath = deriv_root / deriv_chain / f'sub-{subject}' / bids_path.copy().update(
+                    check=False, suffix=f'desc-{freq_band}_eeg-tfr', extension='.h5').basename
+                deriv_fpath.parent.mkdir(exist_ok=True, parents=True)
+                if deriv_fpath.exists() and not overwrite:
+                    continue
+
+                raw = read_scalp_eeg(bids_path, reference=reference)
+
+                # run TFR analysis
+                epochs = make_fixed_length_epochs(raw, duration=2, overlap=1)
+                freqs = FREQ_BANDS[freq_band]
+
+                # compute multitaper FFT
+                epochs_tfr  = tfr_multitaper(epochs, freqs, n_jobs=n_jobs, n_cycles = freqs/2., return_itc=False, average=False)
+                
+                # save the output object to disc        
+                print(f'Saving to {deriv_fpath}')
+                epochs_tfr.save(deriv_fpath)
 
 
 if __name__ == "__main__":

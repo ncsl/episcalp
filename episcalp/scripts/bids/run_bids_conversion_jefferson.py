@@ -25,8 +25,8 @@ def convert_jeffersion_to_bids():
     # 1xx is epilepsy normal
     # 2xx is epilepsy abnormal
     non_epi_src = source_root / "non-epilepsy-normal-EEG"
-    epi_norm_src = source_root / "epilepsy-wout-abnormalities"
-    epi_abnorm_src = source_root / "epilepsy-with-abnormalities"
+    epi_norm_src = source_root / "epilepsy-normal-eeg"
+    epi_abnorm_src = source_root / "epilepsy-abnormal-eeg"
 
     # site ID prefix to subject IDs
     subj_site = "jeff"
@@ -40,8 +40,7 @@ def convert_jeffersion_to_bids():
     overwrite = False
     verbose = False
 
-    for condition, source_dir in enumerate([non_epi_src, epi_norm_src, epi_abnorm_src
-                                            ]):
+    for condition, source_dir in enumerate([non_epi_src, epi_norm_src, epi_abnorm_src]):
         _convert_folder(
             source_dir,
             root,

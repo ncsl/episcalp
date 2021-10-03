@@ -1,4 +1,5 @@
 from pathlib import Path
+from mne_bids.path import get_entities_from_fname
 import numpy as np
 
 import mne
@@ -68,7 +69,7 @@ def find_nearest(array, value):
 
 def add_spikes_for_sites():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
-    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
     spike_root = root / "derivatives" / "spikes"
 
     extension = ".edf"
@@ -107,8 +108,15 @@ def add_spikes_for_sites():
             spike_dir = Path(spike_root) / spike_sub
             task = bids_path.task
 
-            spike_fpath = list(spike_dir.glob(
-                f"{spike_sub}_*run-{run}_eeg_spikes.lay"))
+            spike_fpaths = list(spike_dir.glob('*.lay'))
+            for fpath in spike_fpaths:
+                entities = get_entities_from_fname(fpath.name)
+                if all(ent == bids_path.entities[key] for key, ent in entities.items() if key != 'suffix'):
+                    spike_fpath = [fpath.as_posix()]
+                    break
+
+            # spike_fpath = list(spike_dir.glob(
+            #     f"{spike_sub}_*run-{run}_spikes.lay"))
 
             print(f'Initially found paths: {spike_fpath}.')
             if len(spike_fpath) > 1 or len(spike_fpath) == 0:
