@@ -2,6 +2,7 @@ from mne import Annotations
 
 from ...preprocess.montage import get_standard_1020_channels
 
+
 def _annotlist_to_annots(annot_list):
     for idx in range(len(annot_list)):
         if idx == 0:
@@ -17,8 +18,8 @@ def _process_annot(annot):
     desc = annot.description[0]
 
     # Pattern is: <spike> <ch_name>-Av12
-    spike_desc, ch_str = desc.split(' ')
-    ch_name = ch_str.split('-')[0]
+    spike_desc, ch_str = desc.split(" ")
+    ch_name = ch_str.split("-")[0]
     onset = annot.onset
     duration = annot.duration
     return spike_desc, ch_name
@@ -38,7 +39,7 @@ def _get_spike_annots(raw, verbose=True):
     for annot in raw.annotations:
         annot = Annotations(**annot)
         curr_desc = annot.description[0]
-        if curr_desc.startswith('Spike ') or curr_desc.startswith('SpikeGen'):
+        if curr_desc.startswith("Spike ") or curr_desc.startswith("SpikeGen"):
             # or curr_desc.startswith('@Spike ') or curr_desc.startswith('@SpikeGen'):
             desc, ch_name = _process_annot(annot)
 
@@ -47,7 +48,7 @@ def _get_spike_annots(raw, verbose=True):
                 continue
             # we want to remove midline contacts rn because
             # Bayview doesn't use them
-            if ch_name in ['Cz', 'Pz', 'Fz']:
+            if ch_name in ["Cz", "Pz", "Fz"]:
                 continue
 
             onsets.extend(annot.onset)
@@ -56,8 +57,9 @@ def _get_spike_annots(raw, verbose=True):
             ch_names.append([ch_name])
 
     # create Annotations object
-    spike_annots = Annotations(onset=onsets, duration=durations, description=description,
-                               ch_names=ch_names)
+    spike_annots = Annotations(
+        onset=onsets, duration=durations, description=description, ch_names=ch_names
+    )
     return spike_annots
 
 

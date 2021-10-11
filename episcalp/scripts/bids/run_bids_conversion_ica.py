@@ -24,7 +24,7 @@ def convert_eeglab_ica_to_bids():
     window_scheme = "win-20"
     authors = "Patrick Myers and Adam Li"
     dataset_name = "Jefferson-ICLabel-Cleaned"
-    dataset_name = 'JHH-ICLabel-Cleaned'
+    dataset_name = "JHH-ICLabel-Cleaned"
 
     # root and filtering scheme
     ica_root = root / "derivatives" / "ICA" / filter_scheme / window_scheme
@@ -105,7 +105,7 @@ def convert_eeglab_ica_to_bids():
 def _merge_src_metadata():
     root = Path("D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents/40Hz-30")
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
-    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
 
     filter_scheme = "1-30Hz-30"
     window_scheme = "win-20"

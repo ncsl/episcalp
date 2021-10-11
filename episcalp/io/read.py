@@ -41,7 +41,7 @@ def read_scalp_eeg(
     # resample to 256 Hz if larger due to the fact that
     # scalp EEG can't really resolve frequencies > 90 Hz
     if raw.info["sfreq"] > 256:
-        raw.resample(sfreq=resample_sfreq)
+        raw.resample(sfreq=256)
         print(f"New resampled sfreq: ", raw.info["sfreq"])
 
     # set channel types for scalp EEG data

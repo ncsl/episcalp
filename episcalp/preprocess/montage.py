@@ -8,8 +8,8 @@ def get_standard_1020_channels():
         "F8",
         "P3",
         "P4",
-        "C3",
-        "C4",
+        # "C3",  # usually referenced against
+        # "C4",  # usually referenced against
         "P7",
         "P8",
         "O1",
@@ -53,7 +53,7 @@ def get_standard_1020_bipolar_pairs():
         ["T4", "T6"],
         ["T6", "O2"],
         ["Fz", "Cz"],
-        ["Cz", "Pz"]
+        ["Cz", "Pz"],
     ]
 
 
@@ -67,13 +67,13 @@ def _standard_lobes(separate_hemispheres=False):
             "left_parietal": ["P7", "C3"],
             "right_parietal": ["P8", "C4"],
             "left_occipital": ["O1"],
-            "right_occipital": ["O2"]
+            "right_occipital": ["O2"],
         }
     else:
         lobe_dict = {
             "frontal": ["Fp1", "F3", "F7", "Fp2", "F4", "F8"],
             "temporal": ["T3", "T5", "T7", "T4", "T6", "T8"],
             "parietal": ["P7", "C3", "P8", "C4"],
-            "occipital": ["O1", "O2"]
+            "occipital": ["O1", "O2"],
         }
     return lobe_dict

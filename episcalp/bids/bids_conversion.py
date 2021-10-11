@@ -12,6 +12,7 @@ from mne_bids.tsv_handler import _from_tsv, _to_tsv
 from mne_bids.utils import _write_json
 
 from episcalp.bids.utils import _channel_text_scrub, bids_preprocess_raw
+from episcalp.preprocess.montage import get_standard_1020_channels
 
 
 def _replace_ext(fname, ext, verbose=False):
@@ -103,7 +104,8 @@ def write_epitrack_bids(
         montage = mne.channels.make_standard_montage(montage)
 
         # find non-matching ch_names
-        montage_chs = montage.ch_names
+        # montage_chs = montage.ch_names
+        montage_chs = get_standard_1020_channels()
         eeg_picks = mne.pick_types(raw.info, eeg=True)
         eeg_chs = [raw.ch_names[pick] for pick in eeg_picks]
         non_eeg_chs = [ch for ch in eeg_chs if ch not in montage_chs]

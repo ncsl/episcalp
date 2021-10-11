@@ -35,7 +35,11 @@ def _extract_spike_annotations(raw_persyst):
         # contains_spike = ((description_.startswith("@Spike "))
         #                   or (description_.startswith("@SpikeGen")))
 
-        if ((description_.startswith("Spike ")) or (description_.startswith("SpikeGen")) and onsets[ind] != 0):
+        if (
+            (description_.startswith("Spike "))
+            or (description_.startswith("SpikeGen"))
+            and onsets[ind] != 0
+        ):
             if description_.count(" ") == 2:
                 spike, ch, duration = description_.split(" ")
             else:
@@ -62,10 +66,12 @@ def _extract_spike_annotations(raw_persyst):
     )
     return annotations_
 
+
 def find_nearest(array, value):
     array = np.asarray(array)
     idx = np.argsort(abs(array - value))[0]
     return array[idx]
+
 
 def add_spikes_for_sites():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
@@ -92,8 +98,7 @@ def add_spikes_for_sites():
 
         fpaths = bids_path_.match(check=True)
         if fpaths == []:
-            raise RuntimeError(
-                f"The parameters {bids_path_} do not match anything")
+            raise RuntimeError(f"The parameters {bids_path_} do not match anything")
 
         spike_sub = f"sub-{subject}"
         # read the original raw file
@@ -108,23 +113,26 @@ def add_spikes_for_sites():
             spike_dir = Path(spike_root) / spike_sub
             task = bids_path.task
 
-            spike_fpaths = list(spike_dir.glob('*.lay'))
+            spike_fpaths = list(spike_dir.glob("*.lay"))
             for fpath in spike_fpaths:
                 entities = get_entities_from_fname(fpath.name)
-                if all(ent == bids_path.entities[key] for key, ent in entities.items() if key != 'suffix'):
+                if all(
+                    ent == bids_path.entities[key]
+                    for key, ent in entities.items()
+                    if key != "suffix"
+                ):
                     spike_fpath = [fpath.as_posix()]
                     break
 
             # spike_fpath = list(spike_dir.glob(
             #     f"{spike_sub}_*run-{run}_spikes.lay"))
 
-            print(f'Initially found paths: {spike_fpath}.')
+            print(f"Initially found paths: {spike_fpath}.")
             if len(spike_fpath) > 1 or len(spike_fpath) == 0:
                 if task == "asleep":
                     task = "sleep"
                 print(f"Re-searching with task. {spike_fpath}")
-                print(
-                    f"Search string was: {spike_sub}_*run-{run}_eeg_spikes.lay")
+                print(f"Search string was: {spike_sub}_*run-{run}_eeg_spikes.lay")
                 search_str = f"{spike_sub}_*{task}*_spikes.lay"
                 spike_fpath = list(spike_dir.glob(search_str))
                 if len(spike_fpath) > 1:
@@ -146,15 +154,17 @@ def add_spikes_for_sites():
             wrote_annotations = False
             for idx, annot in enumerate(spike_annotations):
                 # only looking at spikes
-                if 'spike' not in annot['description'].lower():
+                if "spike" not in annot["description"].lower():
                     continue
 
                 # print(annot['description'], annot['onset'])
                 # print(annotations.description)
                 # print(annotations.onset)
-                nearest_onset = find_nearest(annotations.onset, annot['onset'])
-                if annot["description"] in annotations.description and ((annot['onset'] - nearest_onset) < 0.01):
-                    print('\nskipping...')
+                nearest_onset = find_nearest(annotations.onset, annot["onset"])
+                if annot["description"] in annotations.description and (
+                    (annot["onset"] - nearest_onset) < 0.01
+                ):
+                    print("\nskipping...")
                     continue
                     # if annot['description'].startswith('@Warning'):
                     #     continue
