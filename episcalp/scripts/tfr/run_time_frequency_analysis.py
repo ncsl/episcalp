@@ -23,7 +23,7 @@ logger.setLevel(logging.DEBUG)
 
 def main():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
-    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
     deriv_root = root / "derivatives"
     bids_root = deriv_root / "ICA" / "1-30Hz-30" / "win-20"
 

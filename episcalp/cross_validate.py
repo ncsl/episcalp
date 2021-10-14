@@ -144,26 +144,26 @@ def get_X_features(derived_dataset, feature_name="data"):
 
         # average over time
         this_data = np.nanmean(feature_map, axis=1)
-        features = np.empty((0,))
+        # features = np.empty((0,))
 
         # distributional features of the EEG electrodes
-        # features = np.hstack(
-        #     [
-        #         np.quantile(this_data, q=q) for q in np.linspace(0.1, 1.0, 9)
-        #     ]
-        # )
+        features = np.hstack(
+            [
+                np.quantile(this_data, q=q) for q in [0.1, 0.5, 0.9]
+            ] + [this_data.mean()] + [this_data.std()]
+        )
 
         # values per lobe
-        lobe_dict = _standard_lobes(separate_hemispheres=False)
-        lobe_vals = []
-        for lobe, lobe_chs in lobe_dict.items():
-            idx = [idx for idx in range(len(ch_names)) if ch_names[idx] in lobe_chs]
-            if idx == []:
-                lobe_vals.append(-1)
-                continue
-            lobe_vals.append(np.nanmean(this_data[idx]))
-
-        features = np.hstack([features, lobe_vals])
+        # lobe_dict = _standard_lobes(separate_hemispheres=False)
+        # lobe_vals = []
+        # for lobe, lobe_chs in lobe_dict.items():
+        #     idx = [idx for idx in range(len(ch_names)) if ch_names[idx] in lobe_chs]
+        #     if idx == []:
+        #         lobe_vals.append(-1)
+        #         continue
+        #     lobe_vals.append(np.nanmean(this_data[idx]))
+        #     lobe_vals.append(np.std(this_data[idx]))
+        # features = np.hstack([features, lobe_vals])
 
         X.append(features)
 

@@ -20,9 +20,9 @@ def get_standard_1020_channels():
         "T6",
         "T7",
         "T8",
-        "Cz",
-        "Pz",
-        "Fz",
+        # "Cz",
+        # "Pz",
+        # "Fz",
     ]
 
 
