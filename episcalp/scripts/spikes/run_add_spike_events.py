@@ -41,7 +41,12 @@ def _extract_spike_annotations(raw_persyst):
             and onsets[ind] != 0
         ):
             if description_.count(" ") == 2:
-                spike, ch, duration = description_.split(" ")
+                spike, ch, perception = description_.split(" ")
+
+                # the perception is the probability value output from Persyst
+                # that this event is a spike
+
+                duration = "0"  # by default lay files won't contain duration
             else:
                 continue
                 raise RuntimeError(
@@ -58,6 +63,8 @@ def _extract_spike_annotations(raw_persyst):
                 durations[ind] = float(duration)
                 description = f"{spike} {_fix_channel_name(ch)}"
                 descriptions[ind] = description
+
+            descriptions[ind] = description + f" perception:{perception}"
         else:
             descriptions[ind] = description_
     # Add correct annotations to the base raw object
@@ -75,17 +82,18 @@ def find_nearest(array, value):
 
 def add_spikes_for_sites():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
-    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
     spike_root = root / "derivatives" / "spikes"
 
     extension = ".edf"
     datatype = "eeg"
     suffix = "eeg"
+    overwrite = True
 
     # get all subjects
     subjects = get_entity_vals(spike_root, "subject")
     # subjects = [f"{site_id}{subject}" for subject in subjects]
-    # subjects = ['jhh001']
+    subjects = ["jhh001"]
 
     for subject in subjects:
         bids_path_ = BIDSPath(
@@ -107,6 +115,13 @@ def add_spikes_for_sites():
 
             raw_src = read_raw_bids(bids_path, verbose=False)
             annotations = raw_src.annotations
+            if overwrite:
+                remove_idx = []
+                for idx, annot in enumerate(annotations):
+                    descrip = annot["description"]
+                    if descrip.startswith("Spike ") or descrip.startswith("SpikeGen "):
+                        remove_idx.append(idx)
+                annotations.delete(remove_idx)
             run = bids_path.run
 
             # Read in persyst data that contains spike information

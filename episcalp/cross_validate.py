@@ -148,9 +148,9 @@ def get_X_features(derived_dataset, feature_name="data"):
 
         # distributional features of the EEG electrodes
         features = np.hstack(
-            [
-                np.quantile(this_data, q=q) for q in [0.1, 0.5, 0.9]
-            ] + [this_data.mean()] + [this_data.std()]
+            [np.quantile(this_data, q=q) for q in [0.1, 0.5, 0.9]]
+            + [this_data.mean()]
+            + [this_data.std()]
         )
 
         # values per lobe

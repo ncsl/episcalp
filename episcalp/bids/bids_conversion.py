@@ -20,7 +20,7 @@ def _replace_ext(fname, ext, verbose=False):
     if verbose:
         print(f"Trying to replace {fname} with extension {ext}")
 
-    fname, _ext = _parse_ext(fname, verbose=verbose)
+    fname, _ext = _parse_ext(fname)
     if not ext.startswith("."):
         ext = "." + ext
 
@@ -199,7 +199,7 @@ def append_original_fname_to_scans(
         "Provides possibly ictal/interictal, asleep/awake and "
         "clinical seizure grouping (i.e. SZ2PG, etc.)."
     }
-    _write_json(scans_json_path, scans_json, overwrite=True, verbose=verbose)
+    _write_json(scans_json_path, scans_json, overwrite=True)
 
     # write in original filename
     if "original_filename" not in scans_tsv.keys():

@@ -66,7 +66,9 @@ def update_participants_info(
 
     participant_field[key] = participant_field_key
     _write_json(
-        participants_json_fname, participant_field, overwrite=True, verbose=False
+        participants_json_fname,
+        participant_field,
+        overwrite=True,
     )
     _update_sidecar_tsv_byname(
         participants_tsv_fname, subject, key, value, index_name="participant_id"
