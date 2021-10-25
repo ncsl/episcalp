@@ -67,6 +67,9 @@ Setup environment from pipenv
    # pip install for oblique random forests
    pip install https://api.github.com/repos/neurodatadesign/manifold_random_forests/zipball/master
    
+   # install main version for autoreject
+   pip install https://api.github.com/repos/autoreject/autoreject/zipball/master
+
 If you're using some private repos, such as ``eztrack``, here's some helper code
 for installing.
 

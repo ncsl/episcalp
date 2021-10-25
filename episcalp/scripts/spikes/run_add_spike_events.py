@@ -1,5 +1,5 @@
 from pathlib import Path
-from mne_bids.path import get_entities_from_fname
+from mne_bids.path import get_bids_path_from_fname, get_entities_from_fname
 import numpy as np
 
 import mne
@@ -7,6 +7,7 @@ from mne_bids import BIDSPath, get_entity_vals, read_raw_bids
 from mne_bids.write import write_raw_bids
 
 from episcalp.utils.standard_1020_montage import get_standard_1020_montage
+from episcalp.io.persyst import read_report
 
 
 def _fix_channel_name(ch_name):
@@ -80,7 +81,7 @@ def find_nearest(array, value):
     return array[idx]
 
 
-def add_spikes_for_sites():
+def add_spikes_fromlay_for_sites():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
     # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
     spike_root = root / "derivatives" / "spikes"
@@ -207,5 +208,41 @@ def add_spikes_for_sites():
             )
 
 
+def add_spikes_fromreport_for_sites():
+    root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
+    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    spike_root = root / "derivatives" / "spike_reports"
+
+    extension = ".edf"
+    datatype = "eeg"
+    suffix = "eeg"
+    overwrite = True
+
+    # get all subjects
+    subjects = get_entity_vals(spike_root, "subject")
+    # subjects = [f"{site_id}{subject}" for subject in subjects]
+    # subjects = ["jhh001"]
+
+    for subject in subjects:
+        subj_deriv_path = spike_root / f"sub-{subject}"
+        report_fpaths = subj_deriv_path.glob("*.csv")
+
+        for fpath in report_fpaths:
+            bids_path = get_bids_path_from_fname(fpath.name, check=False)
+            assert bids_path.subject == subject
+
+            bids_path.update(
+                root=root, extension=extension, datatype=datatype, suffix=suffix
+            )
+
+            # read the report
+            raw = read_report(fpath, root=root, overwrite=True)
+
+            # write to BIDS and overwrite existing dataset
+            print("Writing new spike events to {bids_path}")
+            write_raw_bids(raw, bids_path, overwrite=True, format="EDF", verbose=False)
+
+
 if __name__ == "__main__":
-    add_spikes_for_sites()
+    # add_spikes_fromlay_for_sites()
+    add_spikes_fromreport_for_sites()

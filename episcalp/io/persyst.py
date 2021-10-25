@@ -1,15 +1,87 @@
-import numpy as np
+from logging import warn
+from mne_bids.path import get_bids_path_from_fname
 import pandas as pd
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from mne.utils import warn
 from mne_bids import get_entities_from_fname, BIDSPath
 from mne.annotations import Annotations
 from mne_bids.read import read_raw_bids
 from mne_bids.write import write_raw_bids
 
+from ..montage import get_standard_1020_channels
+
+
+def _process_annot(annot):
+    # process annotations into a spike/spikegen event with
+    # channel name annotated
+    desc = annot.description[0]
+
+    # Pattern is: <spike> <ch_name>-Av12
+    ch_str = desc.split(" ")[1]
+    ch_name = ch_str.split("-")[0]
+    onset = annot.onset
+    duration = annot.duration
+    return desc, ch_name
+
+
+def _get_spike_annots(raw, verbose=True):
+    """Create Annotations object from Persyst spikes.
+
+    Searches the raw object Annotations for hardcoded Persyst
+    characters, such as: 'Spike ', or 'SpikeGen '.
+    """
+    onsets = []
+    durations = []
+    description = []
+    ch_names = []
+
+    standard_chs = get_standard_1020_channels()
+
+    # loop through annotations
+    for annot in raw.annotations:
+        annot = Annotations(**annot)
+        curr_desc = annot.description[0]
+        if curr_desc.startswith("Spike ") or curr_desc.startswith("SpikeGen"):
+            # or curr_desc.startswith('@Spike ') or curr_desc.startswith('@SpikeGen'):
+            desc, ch_name = _process_annot(annot)
+
+            # only standard_1020 montage is supported rn
+            if ch_name not in standard_chs:
+                continue
+            # we want to remove midline contacts rn because
+            # Bayview doesn't use them
+            if ch_name in ["Cz", "Pz", "Fz"]:
+                continue
+
+            onsets.extend(annot.onset)
+            durations.extend(annot.duration)
+            description.append(desc)
+            ch_names.append([ch_name])
+
+    # create Annotations object
+    spike_annots = Annotations(
+        onset=onsets,
+        duration=durations,
+        description=description,
+        ch_names=ch_names,
+        orig_time=raw.info["meas_date"],
+    )
+    return spike_annots
+
 
 def read_report(fname, root, overwrite=True):
+    """Read Persyst generated spike report.
+
+    Add persyst spike events as mne Annotations
+    inside the raw path.
+
+    Assumes:
+
+    1. that the raw file exists at the corresponding BIDS path.
+    2. the Persyst spike report filename is BIDS compliant.
+    """
     df = pd.read_csv(fname, delimiter=",", index_col=None)
 
     # get the original BIDS dataset
@@ -99,8 +171,63 @@ def read_report(fname, root, overwrite=True):
 
     # update the raw file
     raw.set_annotations(annotations)
-    print(raw.annotations.to_data_frame())
-    write_raw_bids(raw, bids_path)
+    return raw
+
+
+def compute_spike_df(raw):
+    """Compute channel spike counts from Raw object."""
+    raw.pick_types(eeg=True)
+    raw.drop_channels(raw.info["bads"])
+    ch_spike_count = dict()
+
+    # extract spike annotations
+    spike_annots = _get_spike_annots(raw)
+    if len(spike_annots) == 0:
+        for ch_name in raw.ch_names:
+            ch_spike_count[ch_name] = 0
+        return pd.DataFrame()
+
+    # convert to dataframe and then count number of events
+    spike_df = spike_annots.to_data_frame()
+
+    meas_date = raw.info["meas_date"].replace(tzinfo=None)
+    spike_df["onset"] = (spike_df["onset"] - meas_date).apply(
+        lambda x: x.total_seconds()
+    )
+    spike_df["sample"] = (
+        (spike_df["onset"]).apply(lambda x: x * raw.info["sfreq"]).astype(int)
+    )
+
+    # convert ch name column to single str
+    spike_df["ch_name"] = spike_df["ch_names"].apply(lambda x: x[0])
+    spike_df.drop("ch_names", axis=1, inplace=True)
+
+    # extract duration and perception from the spike df description
+    descriptions = spike_df["description"]
+
+    if any("perception:" not in descrip for descrip in descriptions):
+        warn(
+            f"Not all descriptions have the perception: string. Check "
+            f"the persyst annootations for {raw}."
+        )
+
+    perceptions = []
+    heights = []
+    for descrip in descriptions:
+        if "perception:" not in descrip:
+            raise RuntimeError(f"Perception not in {raw} spike annotations.")
+
+        # extract perception
+        perception = descrip.split("perception:")[1].split(" ")[0]
+
+        # extract height in uV
+        height = descrip.split("height:")[1].split(" ")[0]
+
+        perceptions.append(perception)
+        heights.append(height)
+    spike_df["perception"] = perceptions
+    spike_df["height"] = heights
+    return spike_df
 
 
 if __name__ == "__main__":
@@ -109,7 +236,11 @@ if __name__ == "__main__":
         root
         / "derivatives"
         / "spike_reports"
-        / "sub-jhh001"
-        / "sub-jhh001_run-01_spikereview.csv"
+        / "sub-jhh201"
+        / "sub-jhh201_run-01_spikereview.csv"
     )
-    read_report(fname, root=root)
+    raw = read_report(fname, root=root)
+
+    print(raw.annotations.to_data_frame())
+    bids_path = get_bids_path_from_fname(raw.filenames[0])
+    write_raw_bids(raw, bids_path, format="EDF", overwrite=True)

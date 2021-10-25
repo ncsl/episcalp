@@ -22,8 +22,8 @@ logger.setLevel(logging.DEBUG)
 
 
 def main():
-    root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
-    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    # root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
+    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
     deriv_root = root / "derivatives"
     bids_root = deriv_root / "ICA" / "1-30Hz-30" / "win-20"
 
@@ -45,7 +45,7 @@ def main():
     # analysis parameters
     reference = "monopolar"
     sfreq = None
-    overwrite = False
+    overwrite = True
 
     # get the runs for this subject
     all_subjects = get_entity_vals(bids_root, "subject")
@@ -105,6 +105,9 @@ def main():
                     return_itc=False,
                     average=False,
                 )
+
+                # average over frequencies
+                epochs_tfr = epochs_tfr.average(dim="freqs")
 
                 # save the output object to disc
                 print(f"Saving to {deriv_fpath}")
