@@ -20,7 +20,7 @@ logger.setLevel(logging.DEBUG)
 
 def main():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
-    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
     deriv_root = root / "derivatives"
     bids_root = deriv_root / "ICA" / "1-30Hz-30" / "win-20"
 
@@ -30,7 +30,7 @@ def main():
 
     # analysis parameters
     n_jobs = -1
-    consensus = 0.8
+    consensus = 0.95
     reference = "monopolar"
     overwrite = False
 
@@ -56,7 +56,7 @@ def main():
                 check=False,
                 processing="autoreject",
                 extension=".h5",
-                suffix="eeg",
+                suffix=f"desc-thresh{consensus}_eeg",
             )
             fig_bids_path = ar_bids_path.copy().update(extension=".pdf")
             if ar_bids_path.fpath.exists() and not overwrite:
