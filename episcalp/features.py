@@ -21,10 +21,12 @@ from .montage import _standard_lobes
 
 
 def spike_feature_vector(ch_spike_df, ch_names, type="rate"):
-    n_secs = ch_spike_df["n_secs"][0]
-
     ch_spike_count = dict()
     ch_spike_rates = dict()
+    feature_vec = np.zeros((6,))
+
+    if ch_spike_df.empty:
+        return feature_vec
 
     # compute the count of spike events per channel
     for ch_name in ch_names:
@@ -35,6 +37,7 @@ def spike_feature_vector(ch_spike_df, ch_names, type="rate"):
         else:
             ch_spike_count[ch_name] = 0
 
+    n_secs = ch_spike_df["n_secs"].tolist()[0]
     # normalize spike counts
     for ch_name, val in ch_spike_count.items():
         ch_spike_rates[ch_name] = val / n_secs
@@ -60,6 +63,7 @@ def spike_feature_vector(ch_spike_df, ch_names, type="rate"):
 
     assert len(ch_names) == len(ch_spike_rates.keys())
     assert_array_equal(ch_names, list(ch_spike_rates.keys()))
+    return feature_vec
 
 
 def heatmap_features(feature_map, type="quantile"):

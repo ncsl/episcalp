@@ -1,6 +1,8 @@
 import collections
 from typing import Dict
+from mne_bids.path import get_bids_path_from_fname
 import numpy as np
+from mne import make_fixed_length_epochs
 from mne_bids import read_raw_bids, get_entity_vals, get_entities_from_fname, BIDSPath
 
 from episcalp.utils import (
@@ -31,6 +33,34 @@ def _get_montage_rename_dict(ch_names, montage_ch_names):
     return channel_rename
 
 
+def load_reject_log(bids_path, duration=1, verbose=False):
+    """Reload the Autoreject Log from disc.
+    
+    This assumes the Autoreject object was previously fit and then
+    remake the reject log from the Epoched data.
+    """
+    from autoreject import read_auto_reject
+    ar_bids_path = bids_path.copy().update(
+        check=False,
+        processing="autoreject",
+        extension=".h5",
+        suffix="eeg",
+    )
+    ar = read_auto_reject(ar_bids_path)
+
+    # read in that file
+    raw = read_raw_bids(bids_path)
+    raw.set_montage("standard_1020")
+
+    # make these into epochs
+    epochs = make_fixed_length_epochs(raw, duration=duration)
+    epochs.load_data()
+
+    # get the reject log again
+    reject_log = ar.get_reject_log(epochs)
+    return reject_log
+
+
 def load_persyst_spikes(root, subjects=None, search_str="*.edf", verbose=True):
     """Read all persyst spikes."""
     if subjects is None:
@@ -48,10 +78,7 @@ def load_persyst_spikes(root, subjects=None, search_str="*.edf", verbose=True):
 
         # now load in all file paths
         for fpath in fpaths:
-            entities = get_entities_from_fname(fpath.name)
-            bids_path = BIDSPath(
-                root=root, datatype="eeg", extension=".edf", **entities
-            )
+            bids_path = get_bids_path_from_fname(fpath)
             raw = read_raw_bids(bids_path)
 
             # extract data

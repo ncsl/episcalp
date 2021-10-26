@@ -37,6 +37,8 @@ def main():
     # get the runs for this subject
     all_subjects = get_entity_vals(bids_root, "subject")
 
+    # the autoreject algorithm without interpolation and instantiating a 
+    # threshold for number of bad electrodes required for consensus as a bad epoch
     ar = AutoReject(n_interpolate=[0], consensus=[consensus], n_jobs=n_jobs)
 
     for subject in all_subjects:
@@ -68,6 +70,7 @@ def main():
             epochs = make_fixed_length_epochs(raw, duration=1)
             epochs.load_data()
 
+            # run autoreject and compute a threshold and bad channels per epoch
             ar.fit(epochs)
             print(ar_bids_path)
             ar.save(fname=ar_bids_path, overwrite=overwrite)
