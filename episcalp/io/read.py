@@ -44,7 +44,7 @@ def load_reject_log(bids_path, duration=1, verbose=False):
         check=False,
         processing="autoreject",
         extension=".h5",
-        suffix="eeg",
+        suffix="desc-thresh0.95_eeg",
     )
     ar = read_auto_reject(ar_bids_path)
 
@@ -60,6 +60,52 @@ def load_reject_log(bids_path, duration=1, verbose=False):
     reject_log = ar.get_reject_log(epochs)
     return reject_log
 
+
+def map_rejectlog_to_deriv(
+    deriv_onsets, winsize, rejectlog_events, rejectlog_duration
+):
+    """Map AR rejection log to derivative windowed analysis.
+
+    Parameters
+    ----------
+    deriv_onsets : np.ndarray, shape (n_windows,)
+        The onset in sample times of each derivative window.
+    winsize : int
+        The window size in samples of each derivative window.
+    rejectlog_events : np.ndarray, shape (n_windows, 3)
+        The array of events that were created by ``make_fixed_length_epochs``
+        and then filtering by the ``bad_epochs`` of the ``RejectLog``.
+    rejectlog_duration : int
+        The duration in samples of each autoreject epoch.
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    deriv_offsets = deriv_onsets + winsize
+
+    bad_wins = []
+    # loop through all bad epochs
+    for onset in rejectlog_events[:, 0]:
+        # now get the stop sample point for the bad epoch
+        stop = onset + rejectlog_duration
+
+        # find all derivative windows that are entirely
+        # within the onset - stop bad epoch window
+        #         bad_wins = []
+        #         bad_wins.extend(
+        #             np.argwhere((deriv_onsets >= onset) & (deriv_onsets <= stop).tolist())
+        #         )
+
+        # find all derivative windows that have any part
+        # within the bad epoch
+        bad_start_idx = np.argwhere((deriv_onsets >= onset) & (deriv_onsets <= stop))
+        bad_end_idx = np.argwhere((deriv_offsets >= onset) & (deriv_offsets <= stop))
+        bad_idx = np.unique(np.union1d(bad_start_idx, bad_end_idx))
+        # bad_idx = np.intersect1d(bad_start_idx, bad_end_idx)
+        bad_wins.extend(bad_idx.tolist())
+    return bad_wins
 
 def load_persyst_spikes(root, subjects=None, search_str="*.edf", verbose=True):
     """Read all persyst spikes."""
@@ -95,7 +141,7 @@ def load_persyst_spikes(root, subjects=None, search_str="*.edf", verbose=True):
 
 
 def load_derivative_heatmaps(
-    deriv_path, search_str, read_func, subjects=None, verbose=True
+    deriv_path, search_str, read_func, subjects=None, verbose=True, **kwargs
 ) -> Dict:
     """Read all derived spatiotemporal heatmap in a derivative folder.
 
@@ -136,16 +182,28 @@ def load_derivative_heatmaps(
 
         # now load in all file paths
         for fpath in fpaths:
-            deriv = read_func(fpath, source_check=False)
+            entities = get_entities_from_fname(fpath.name, on_error='ignore')
+            bids_path = BIDSPath(
+                root=root, subject=entities['subject'],
+                session=entities['session'],
+                task=entities['task'],
+                run=entities['run'],
+                suffix='eeg',
+                datatype='eeg',
+                extension='.edf'
+            )
+
+            deriv = read_func(fpath, source_check=False, **kwargs)
 
             # extract data
             ch_names = deriv.ch_names
-            deriv_data = deriv.get_data()
+            # deriv_data = deriv.get_data()
 
             dataset["subject"].append(subject)
-            dataset["data"].append(deriv_data)
+            dataset["data"].append(deriv)
             dataset["ch_names"].append(ch_names)
             dataset["roots"].append(root)
+            dataset["bids_path"].append(bids_path)
     return dataset
 
 
