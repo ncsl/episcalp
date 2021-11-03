@@ -3,12 +3,33 @@ from typing import Dict
 from mne_bids.path import get_bids_path_from_fname
 import numpy as np
 from mne import make_fixed_length_epochs
+from mne.time_frequency import EpochsTFR
 from mne_bids import read_raw_bids, get_entity_vals, get_entities_from_fname, BIDSPath
 
 from episcalp.utils import (
     get_best_matching_montage,
 )
 from .persyst import compute_spike_df
+
+
+def _preprocess_epochs_tfr(data):
+    """Turn TFR data into a 2D array."""
+    assert data.ndim == 4
+
+    # take the average over frequencies
+    data = np.mean(data, axis=2)
+
+    # move the epoch ("window") axis to last
+    data = np.moveaxis(data, 0, -2)
+
+    # compress the time axis
+    data = np.mean(data, axis=-1)
+
+    # convert to dB
+    data = 20 * np.log10(data)
+
+    data = np.reshape(data, (data.shape[0], -1))
+    return data
 
 
 def _map_ch_to_type(ch_name):
@@ -193,14 +214,18 @@ def load_derivative_heatmaps(
                 extension='.edf'
             )
 
-            deriv = read_func(fpath, source_check=False, **kwargs)
+            deriv = read_func(fpath, **kwargs)
 
             # extract data
             ch_names = deriv.ch_names
-            # deriv_data = deriv.get_data()
+            if isinstance(deriv, EpochsTFR):
+                deriv_data = deriv.data
+                deriv_data = _preprocess_epochs_tfr(deriv_data)
+            else:
+                deriv_data = deriv.get_data()
 
             dataset["subject"].append(subject)
-            dataset["data"].append(deriv)
+            dataset["data"].append(deriv_data)
             dataset["ch_names"].append(ch_names)
             dataset["roots"].append(root)
             dataset["bids_path"].append(bids_path)
