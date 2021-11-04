@@ -1,5 +1,7 @@
 from pathlib import Path
 import numpy as np
+from scipy.stats import entropy, skew, kurtosis
+import pandas as pd
 
 from .preprocess.montage import _standard_lobes
 from .scripts.spikes.summary import _get_spike_annots
@@ -107,7 +109,7 @@ def load_derived_datasets(roots, deriv_chains, load_func, **kwargs):
     return derived_dataset
 
 
-def get_X_features(derived_dataset, feature_name="data"):
+def get_X_features(derived_dataset, data_name="data", feature_names=None):
     """Compute the feature X matrix.
 
     Will turn each spatiotemporal feature map into a
@@ -119,7 +121,7 @@ def get_X_features(derived_dataset, feature_name="data"):
         A dataset comprising the data stored as a dictionary
         of lists. Each list component corresponds to another
         separate dataset with a total of ``n_samples`` datasets.
-    feature_name : str, optional
+    data_name : str, optional
         The key to access the spatiotemporal feature map inside
         derived_dataset, by default 'data'.
 
@@ -130,10 +132,13 @@ def get_X_features(derived_dataset, feature_name="data"):
     """
     X = []
 
+    if feature_names is None:
+        feature_names = ['lobes']
+
     ch_names = derived_dataset["ch_names"][0]
 
     # compute feature for every spatiotemporal heatmap
-    for idx, feature_map in enumerate(derived_dataset[feature_name]):
+    for idx, feature_map in enumerate(derived_dataset[data_name]):
         # across time for all electrodes
         # features = np.hstack(
         #     (
@@ -144,28 +149,75 @@ def get_X_features(derived_dataset, feature_name="data"):
 
         # average over time
         this_data = np.nanmean(feature_map, axis=1)
+        n_chs = len(this_data)
         # features = np.empty((0,))
 
         # distributional features of the EEG electrodes
-        features = np.hstack(
-            [np.quantile(this_data, q=q) for q in [0.1, 0.5, 0.9]]
-            + [this_data.mean()]
-            + [this_data.std()]
-        )
+        if 'quantiles' in feature_names:
+            features = np.hstack(
+                [np.quantile(this_data, q=q) for q in [0.1, 0.5, 0.9]]
+                + [this_data.mean()]
+                + [this_data.std()]
+            )
+            X.append(features)
+
 
         # values per lobe
-        # lobe_dict = _standard_lobes(separate_hemispheres=False)
-        # lobe_vals = []
-        # for lobe, lobe_chs in lobe_dict.items():
-        #     idx = [idx for idx in range(len(ch_names)) if ch_names[idx] in lobe_chs]
-        #     if idx == []:
-        #         lobe_vals.append(-1)
-        #         continue
-        #     lobe_vals.append(np.nanmean(this_data[idx]))
-        #     lobe_vals.append(np.std(this_data[idx]))
-        # features = np.hstack([features, lobe_vals])
+        if 'lobes' in feature_names:
+            lobe_dict = _standard_lobes(separate_hemispheres=False)
+            lobe_vals = []
+            for lobe, lobe_chs in lobe_dict.items():
+                idx = [idx for idx in range(len(ch_names)) if ch_names[idx] in lobe_chs]
+                if idx == []:
+                    lobe_vals.append(-1)
+                    continue
+                lobe_vals.append(np.nanmean(this_data[idx]))
+                lobe_vals.append(np.std(this_data[idx]))
+            # features = np.hstack([features, lobe_vals])
+            features = lobe_vals
 
-        X.append(features)
+            X.append(features)
+
+
+        # distribution features
+        if 'distribution' in feature_names:
+            distribution_vals = []
+            uni_dist = np.ones((n_chs, 1)) / n_chs
+            uni_dist = uni_dist.reshape((len(uni_dist),))
+
+
+            distribution_vals.append(entropy(this_data))
+            distribution_vals.append(np.var(this_data))
+            distribution_vals.append(skew(this_data))
+            distribution_vals.append(kurtosis(this_data))
+            #distribution_vals.append(np.mean(this_data))
+
+            distribution_vals.append(entropy(this_data, uni_dist))
+
+            features = distribution_vals
+            X.append(features)
 
     X = np.array(X)
     return X
+
+
+def exclude_subjects(X, y, subjects, roots, exclusion_criteria):
+    dfs = []
+    for root in roots:
+        participants_fpath = root / "participants.tsv"
+        df = pd.read_csv(participants_fpath, sep="\t")
+        dfs.append(df)
+    participants_df = pd.concat(dfs, ignore_index=True)
+    for colname, elist in exclusion_criteria.items():
+        if elist is None:
+            continue
+        participants_df = participants_df[~participants_df[colname].isin(elist)]
+    keep_subjects = []
+    for ind, row in participants_df.iterrows():
+        keep_subjects.append(row['participant_id'].replace("sub-", ""))
+    keep_idx_ = [idx for idx, s in enumerate(subjects) if s in keep_subjects]
+    keep_idx = np.array(keep_idx_)
+    X = X[keep_idx, ...]
+    y = y[keep_idx]
+    keep_subjects = subjects[keep_idx]
+    return X, y, keep_subjects
