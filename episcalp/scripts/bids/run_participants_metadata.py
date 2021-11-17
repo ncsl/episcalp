@@ -27,6 +27,8 @@ def pipeline_jhh():
         "epilepsy_type": "Focal or generalized epilepsy",
         "epilepsy_hemisphere": "Right, left, or bihemispheric",
         "epilepsy_lobe": "For focal epilepsy, which lobes it occurs in.",
+        "age": "",
+        "sex": "",
     }
 
     subjects = get_entity_vals(bids_root, "subject")

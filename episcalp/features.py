@@ -89,7 +89,7 @@ def heatmap_features(feature_map, ch_names=None, types=None):
         spatial_vec = this_data
         feature_vec.append(spatial_vec)
 
-    if "lobes" in types:
+    if "lobe" in types:
         lobe_dict = _standard_lobes(separate_hemispheres=False)
         lobe_vals = []
         for lobe, lobe_chs in lobe_dict.items():

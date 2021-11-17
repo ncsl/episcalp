@@ -1,16 +1,13 @@
 from pathlib import Path
 import shutil as sh
-import os
-from tempfile import TemporaryDirectory, tempdir
 from mne_bids import (
     BIDSPath,
     make_dataset_description,
     update_sidecar_json,
     read_raw_bids,
 )
-from mne_bids.path import get_entities_from_fname, get_entity_vals, print_dir_tree
+from mne_bids.path import get_entities_from_fname, get_entity_vals
 from natsort import natsorted
-from episcalp import bids
 
 from episcalp.bids import write_epitrack_bids, append_original_fname_to_scans
 
@@ -148,5 +145,5 @@ def _merge_src_metadata():
 
 
 if __name__ == "__main__":
-    # convert_eeglab_ica_to_bids()
+    convert_eeglab_ica_to_bids()
     _merge_src_metadata()
