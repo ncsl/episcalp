@@ -24,8 +24,8 @@ def convert_jeffersion_to_bids():
     # 1xx is epilepsy normal
     # 2xx is epilepsy abnormal
     non_epi_src = source_root / "non-epilepsy-normal-EEG"
-    epi_norm_src = source_root / "epilepsy-wout-abnormalities"
-    epi_abnorm_src = source_root / "epilepsy-with-abnormalities"
+    epi_norm_src = source_root / "epilepsy-normal-eeg"
+    epi_abnorm_src = source_root / "epilepsy-abnormal-eeg"
 
     # site ID prefix to subject IDs
     subj_site = "jeff"
@@ -39,10 +39,11 @@ def convert_jeffersion_to_bids():
     overwrite = False
     verbose = False
 
-    for source_dir in [non_epi_src, epi_norm_src, epi_abnorm_src]:
+    for condition, source_dir in enumerate([non_epi_src, epi_norm_src, epi_abnorm_src]):
         _convert_folder(
             source_dir,
             root,
+            condition,
             subj_site,
             datatype,
             montage,
@@ -56,14 +57,17 @@ def convert_jeffersion_to_bids():
 def _extract_meta_from_fname(fpath):
     # Will probably need more later but for now this works
     _, site_id, _, session, _, run = fpath.name.split(" ")
+    run = run.split(".")[0]
     return site_id, session, run
 
 
-def _map_subject_to_exp(subject, source_root):
-    excel_fpath = source_root / "Jefferson_scalp_clinical_datasheet.xlsx"
+def _map_subject_to_exp(subject, source_root, condition):
+    excel_fpath = source_root / "sourcedata" / "Jefferson_scalp_clinical_datasheet.xlsx"
     metadata = pd.read_excel(Path(excel_fpath))
 
-    sub_row = metadata.loc[metadata["hospital_id"] == int(subject)].iloc[0, :]
+    sub_row = metadata.loc[
+        (metadata["hospital_id"] == int(subject)) & (metadata["Group"] == condition)
+    ].iloc[0, :]
 
     new_id = str(sub_row["patient_id"]).zfill(3)
     return new_id
@@ -72,6 +76,7 @@ def _map_subject_to_exp(subject, source_root):
 def _convert_folder(
     source_dir,
     root,
+    condition,
     subj_site,
     datatype,
     montage,
@@ -93,12 +98,13 @@ def _convert_folder(
 
     # run BIDS conversion for each set of files
     for subject in subjects:
+        print(f"\n\nConverting {subject}")
         fpaths = [fpath for fpath in source_dir.glob("*.edf")]
-        fpaths = [f for f in fpaths if f.name[0] == subject]
+        fpaths = [f for f in fpaths if f.name.split(" ")[0] == subject]
         print(f"Fpaths: {fpaths}")
 
         og_subject = subject
-        subject = _map_subject_to_exp(subject, root / "sourcedata")
+        subject = _map_subject_to_exp(subject, root, condition)
 
         # get experimental condition
         if subject.startswith("0"):
@@ -117,7 +123,7 @@ def _convert_folder(
             # extract rule for site, session, and run
             site_id, session, run_id = _extract_meta_from_fname(fpath)
 
-            run_id = idx + 1
+            # run_id = idx + 1
             bids_kwargs = {
                 "subject": subject,
                 "session": session,

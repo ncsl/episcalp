@@ -13,7 +13,9 @@ from episcalp.bids.utils import update_participants_info
 
 
 def convert_upmc_to_bids():
-    root = Path("D:/OneDriveParent/Johns Hopkins/UPMC_Scalp - Documents/scalp_study/root")
+    root = Path(
+        "D:/OneDriveParent/Johns Hopkins/UPMC_Scalp - Documents/scalp_study/root"
+    )
     source_root = root / "sourcedata"
 
     # epilepsy source data from UPMC is organized into three sub-folders
@@ -103,7 +105,7 @@ def _convert_folder(
 
         for idx, fpath in enumerate(fpaths):
 
-            site_id = 'upmc'
+            site_id = "upmc"
 
             run_id = idx + 1
             bids_kwargs = {

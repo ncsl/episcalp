@@ -1,16 +1,13 @@
 from pathlib import Path
 import shutil as sh
-import os
-from tempfile import TemporaryDirectory, tempdir
 from mne_bids import (
     BIDSPath,
     make_dataset_description,
     update_sidecar_json,
     read_raw_bids,
 )
-from mne_bids.path import get_entities_from_fname, get_entity_vals, print_dir_tree
+from mne_bids.path import get_entities_from_fname, get_entity_vals
 from natsort import natsorted
-from episcalp import bids
 
 from episcalp.bids import write_epitrack_bids, append_original_fname_to_scans
 
@@ -18,12 +15,13 @@ from episcalp.bids import write_epitrack_bids, append_original_fname_to_scans
 def convert_eeglab_ica_to_bids():
     root = Path("D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents/40Hz-30")
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
-    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
 
     filter_scheme = "1-30Hz-30"
     window_scheme = "win-20"
     authors = "Patrick Myers and Adam Li"
     dataset_name = "Jefferson-ICLabel-Cleaned"
+    dataset_name = "JHH-ICLabel-Cleaned"
 
     # root and filtering scheme
     ica_root = root / "derivatives" / "ICA" / filter_scheme / window_scheme
@@ -104,7 +102,7 @@ def convert_eeglab_ica_to_bids():
 def _merge_src_metadata():
     root = Path("D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents/40Hz-30")
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
-    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
 
     filter_scheme = "1-30Hz-30"
     window_scheme = "win-20"
@@ -147,5 +145,5 @@ def _merge_src_metadata():
 
 
 if __name__ == "__main__":
-    # convert_eeglab_ica_to_bids()
+    convert_eeglab_ica_to_bids()
     _merge_src_metadata()

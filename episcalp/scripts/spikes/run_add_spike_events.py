@@ -1,4 +1,5 @@
 from pathlib import Path
+from mne_bids.path import get_bids_path_from_fname, get_entities_from_fname
 import numpy as np
 
 import mne
@@ -6,6 +7,7 @@ from mne_bids import BIDSPath, get_entity_vals, read_raw_bids
 from mne_bids.write import write_raw_bids
 
 from episcalp.utils.standard_1020_montage import get_standard_1020_montage
+from episcalp.io.persyst import read_report
 
 
 def _fix_channel_name(ch_name):
@@ -28,10 +30,26 @@ def _extract_spike_annotations(raw_persyst):
     for ind, annot in enumerate(annotations):
         onsets[ind] = annot.get("onset", 0)
         description_ = annot.get("description", "")
-        if (description_.startswith("spike ")) or (description_.startswith("spikegen")):
+
+        # contains the @ and (Peryst) symbol - only if Persyst ran by
+        # clinicians in their own hospital
+        # contains_spike = ((description_.startswith("@Spike "))
+        #                   or (description_.startswith("@SpikeGen")))
+
+        if (
+            (description_.startswith("Spike "))
+            or (description_.startswith("SpikeGen"))
+            and onsets[ind] != 0
+        ):
             if description_.count(" ") == 2:
-                spike, ch, duration = description_.split(" ")
+                spike, ch, perception = description_.split(" ")
+
+                # the perception is the probability value output from Persyst
+                # that this event is a spike
+
+                duration = "0"  # by default lay files won't contain duration
             else:
+                continue
                 raise RuntimeError(
                     f"Description: {description_} has more then 2 spaces..."
                 )
@@ -46,6 +64,8 @@ def _extract_spike_annotations(raw_persyst):
                 durations[ind] = float(duration)
                 description = f"{spike} {_fix_channel_name(ch)}"
                 descriptions[ind] = description
+
+            descriptions[ind] = description + f" perception:{perception}"
         else:
             descriptions[ind] = description_
     # Add correct annotations to the base raw object
@@ -55,18 +75,26 @@ def _extract_spike_annotations(raw_persyst):
     return annotations_
 
 
-def add_spikes_for_sites():
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = np.argsort(abs(array - value))[0]
+    return array[idx]
+
+
+def add_spikes_fromlay_for_sites():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
-    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
     spike_root = root / "derivatives" / "spikes"
 
     extension = ".edf"
     datatype = "eeg"
     suffix = "eeg"
+    overwrite = True
 
     # get all subjects
     subjects = get_entity_vals(spike_root, "subject")
-    subjects = [f"{subject}" for subject in subjects]
+    # subjects = [f"{site_id}{subject}" for subject in subjects]
+    subjects = ["jhh001"]
 
     for subject in subjects:
         bids_path_ = BIDSPath(
@@ -88,13 +116,34 @@ def add_spikes_for_sites():
 
             raw_src = read_raw_bids(bids_path, verbose=False)
             annotations = raw_src.annotations
+            if overwrite:
+                remove_idx = []
+                for idx, annot in enumerate(annotations):
+                    descrip = annot["description"]
+                    if descrip.startswith("Spike ") or descrip.startswith("SpikeGen "):
+                        remove_idx.append(idx)
+                annotations.delete(remove_idx)
             run = bids_path.run
 
             # Read in persyst data that contains spike information
             spike_dir = Path(spike_root) / spike_sub
             task = bids_path.task
 
-            spike_fpath = list(spike_dir.glob(f"{spike_sub}_*run-{run}_eeg_spikes.lay"))
+            spike_fpaths = list(spike_dir.glob("*.lay"))
+            for fpath in spike_fpaths:
+                entities = get_entities_from_fname(fpath.name)
+                if all(
+                    ent == bids_path.entities[key]
+                    for key, ent in entities.items()
+                    if key != "suffix"
+                ):
+                    spike_fpath = [fpath.as_posix()]
+                    break
+
+            # spike_fpath = list(spike_dir.glob(
+            #     f"{spike_sub}_*run-{run}_spikes.lay"))
+
+            print(f"Initially found paths: {spike_fpath}.")
             if len(spike_fpath) > 1 or len(spike_fpath) == 0:
                 if task == "asleep":
                     task = "sleep"
@@ -120,16 +169,28 @@ def add_spikes_for_sites():
             # as of MNE v0.23+
             wrote_annotations = False
             for idx, annot in enumerate(spike_annotations):
-                if annot["description"] not in annotations.description:
+                # only looking at spikes
+                if "spike" not in annot["description"].lower():
+                    continue
+
+                # print(annot['description'], annot['onset'])
+                # print(annotations.description)
+                # print(annotations.onset)
+                nearest_onset = find_nearest(annotations.onset, annot["onset"])
+                if annot["description"] in annotations.description and (
+                    (annot["onset"] - nearest_onset) < 0.01
+                ):
+                    print("\nskipping...")
+                    continue
                     # if annot['description'].startswith('@Warning'):
                     #     continue
                     # print(f'Appending {annot}')
                     # print(annotations.description)
                     # assert False
-                    annotations.append(
-                        annot["onset"], annot["duration"], annot["description"]
-                    )
-                    wrote_annotations = True
+                annotations.append(
+                    annot["onset"], annot["duration"], annot["description"]
+                )
+                wrote_annotations = True
 
             if (
                 not wrote_annotations
@@ -147,5 +208,41 @@ def add_spikes_for_sites():
             )
 
 
+def add_spikes_fromreport_for_sites():
+    root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids")
+    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    spike_root = root / "derivatives" / "spike_reports"
+
+    extension = ".edf"
+    datatype = "eeg"
+    suffix = "eeg"
+    overwrite = True
+
+    # get all subjects
+    subjects = get_entity_vals(spike_root, "subject")
+    # subjects = [f"{site_id}{subject}" for subject in subjects]
+    # subjects = ["jhh001"]
+
+    for subject in subjects:
+        subj_deriv_path = spike_root / f"sub-{subject}"
+        report_fpaths = subj_deriv_path.glob("*.csv")
+
+        for fpath in report_fpaths:
+            bids_path = get_bids_path_from_fname(fpath.name, check=False)
+            assert bids_path.subject == subject
+
+            bids_path.update(
+                root=root, extension=extension, datatype=datatype, suffix=suffix
+            )
+
+            # read the report
+            raw = read_report(fpath, root=root, overwrite=True)
+
+            # write to BIDS and overwrite existing dataset
+            print("Writing new spike events to {bids_path}")
+            write_raw_bids(raw, bids_path, overwrite=True, format="EDF", verbose=False)
+
+
 if __name__ == "__main__":
-    add_spikes_for_sites()
+    # add_spikes_fromlay_for_sites()
+    add_spikes_fromreport_for_sites()

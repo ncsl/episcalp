@@ -109,7 +109,7 @@ def _convert_folder(
         fpaths = [f for f in fpaths if re.search(rf"^{subject}(-|\.)", f.name)]
         print(fpaths)
 
-        subject = _map_subject_to_exp(subject, root.parent)
+        subject = _map_subject_to_exp(subject, root / "sourcedata")
 
         # get experimental condition
         if subject.startswith("0"):

@@ -1,0 +1,33 @@
+name: episcalp
+channels:
+- conda-forge
+dependencies:
+- python>=3.8
+- pip
+- numpy
+- scipy
+- matplotlib
+- seaborn
+- numba
+- pandas
+- xlrd
+- scikit-learn
+- h5py
+- pillow
+- statsmodels
+- jupyter
+- joblib
+- psutil
+- numexpr
+- imageio
+- tqdm
+- mne
+- mne-bids
+- ipywidgets
+- pooch
+- natsort
+- xlrd
+- openpyxl
+- pip:
+  - black
+  - codespell

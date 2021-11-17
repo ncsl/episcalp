@@ -107,11 +107,13 @@ def run_analysis(
 ):
     subject = bids_path.subject
     root = bids_path.root
-    radius = 1.25
+    radius = model_params["radius"]
+    winsize = model_params["winsize"]
+    stepsize = model_params["stepsize"]
     rereference = False
 
     # get the root derivative path
-    deriv_chain = Path("fragility") / f"radius{radius}" / reference / f"sub-{subject}"
+    deriv_chain = Path("fragility") / f"radius{radius}" / f"win-{winsize}" / f"step-{stepsize}" / reference / f"sub-{subject}"
     figures_path = figures_path / "figures" / deriv_chain
     raw_figures_path = root / "derivatives" / "figures" / "raw" / f"sub-{subject}"
     deriv_path = deriv_path / deriv_chain
@@ -150,8 +152,8 @@ def run_analysis(
     # l2penalty = 1
     print(f"Going to use l2penalty: {l2penalty}")
     model_params = {
-        "winsize": 500,
-        "stepsize": 250,
+        "winsize": winsize,
+        "stepsize": stepsize,
         "radius": radius,
         "method_to_use": "pinv",
         # "fb": True,
@@ -172,10 +174,6 @@ def run_analysis(
     state_deriv_fpath = deriv_path / state_arr_deriv.info._expected_basename
     delta_vecs_deriv_fpath = deriv_path / delta_vecs_arr_deriv.info._expected_basename
 
-    print("Saving files to: ")
-    print(perturb_deriv_fpath)
-    print(state_deriv_fpath)
-    print(delta_vecs_deriv_fpath)
     perturb_deriv.save(perturb_deriv_fpath, overwrite=overwrite)
     state_arr_deriv.save(state_deriv_fpath, overwrite=overwrite)
     delta_vecs_arr_deriv.save(delta_vecs_deriv_fpath, overwrite=overwrite)
@@ -237,61 +235,65 @@ def run_post_analysis(deriv_path=None, subject=None, features=None):
 
 
 def main():
-    bids_root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/40Hz-30/")
-    deriv_root = bids_root / "derivatives"
-    figures_path = deriv_root
+    model_params = {
+        "radius": 1.25,
+        "winsize": 100,
+        "stepsize": 50,
+    }
 
-    # define BIDS entities
-    IGNORE_SUBJECTS = []
+    root = Path(
+        "D:/OneDriveParent/Johns Hopkins/Jefferson_Scalp - Documents/root/derivatives/ICA/1-30Hz-30/win-20"
+    )
+    deriv_root = Path(
+        "D:/OneDriveParent/Johns Hopkins/Jefferson_Scalp - Documents/root/derivatives"
+    )
+    figures_root = deriv_root
+    figure_ext = ".png"
 
-    datatype = "eeg"
-    task = "monitor"
-    extension = ".vhdr"
-    session = "initialvisit"  # only one session
-
-    # analysis parameters
-    reference = "monopolar"
-    order = 1
-    sfreq = None
-    overwrite = False
-
-    # get the runs for this subject
-    all_subjects = get_entity_vals(bids_root, "subject")
-    for subject in all_subjects:
-        if subject in IGNORE_SUBJECTS:
-            continue
-        if "awake" in subject or "sleep" in subject:
-            continue
-        ignore_subs = [sub for sub in all_subjects if sub != subject]
-        subj_dir = bids_root / f"sub-{subject}"
-        runs = get_entity_vals(subj_dir, "run")
-        print(f"Found {runs} runs.")
-
-        for idx, run in enumerate(runs):
-            # create path for the dataset
-            bids_path = BIDSPath(
-                subject=subject,
-                session=session,
-                task=task,
-                run=run,
-                datatype=datatype,
-                suffix=datatype,
-                root=bids_root,
-                extension=extension,
+    subjects = get_entity_vals(root, "subject")
+    for subject in subjects:
+        ignore_subjects = [sub for sub in subjects if sub is not subject]
+        sessions = get_entity_vals(root, "session", ignore_subjects=ignore_subjects)
+        if len(sessions) == 0:
+            sessions = [None]
+        for session in sessions:
+            ignore_sessions = [ses for ses in sessions if ses is not session]
+            tasks = get_entity_vals(
+                root,
+                "task",
+                ignore_subjects=ignore_subjects,
+                ignore_sessions=ignore_sessions,
             )
-            print(f"Analyzing {bids_path}")
-
-            run_analysis(
-                bids_path,
-                reference=reference,
-                resample_sfreq=sfreq,
-                deriv_path=deriv_root,
-                figures_path=figures_path,
-                plot_heatmap=True,
-                plot_raw=True,
-                overwrite=overwrite,
-                order=order,
-            )
+            if len(tasks) == 0:
+                tasks = [None]
+            for task in tasks:
+                ignore_tasks = [tsk for tsk in tasks if tsk is not task]
+                runs = get_entity_vals(
+                    root,
+                    "run",
+                    ignore_subjects=ignore_subjects,
+                    ignore_sessions=ignore_sessions,
+                    ignore_tasks=ignore_tasks,
+                )
+                for run in runs:
+                    bids_params = {
+                        "subject": subject,
+                        "session": session,
+                        "task": task,
+                        "run": run,
+                        "datatype": "eeg",
+                        "extension": ".edf",
+                    }
+                    bids_path = BIDSPath(root=root, **bids_params)
+                    run_analysis(
+                        bids_path,
+                        deriv_path=deriv_root,
+                        figures_path=figures_root,
+                        resample_sfreq=256,
+                        overwrite=True,
+                        figure_ext=figure_ext,
+                        **model_params
+                    )
 
 
 if __name__ == "__main__":

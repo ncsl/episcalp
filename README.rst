@@ -51,6 +51,19 @@ High level details that remain to be sorted out are the inclusion of Persyst spi
 Installation Guide
 ==================
 
+Setup environment from conda
+
+.. code-block::
+
+   # create conda environment
+   conda create -n episcalp python=3.8
+   
+   # activate it
+   conda activate episcalp
+
+   # install packages from environment.yml
+   conda env update --file environment.yml
+
 Setup environment from pipenv
 
 .. code-block::
@@ -63,17 +76,23 @@ Setup environment from pipenv
    # if dev versions are needed
    pip install https://api.github.com/repos/mne-tools/mne-python/zipball/master
    pipenv install https://api.github.com/repos/mne-tools/mne-bids/zipball/master
+   pip install https://api.github.com/repos/mne-tools/mne-connectivity/zipball/master
+   # pip install for oblique random forests
+   pip install https://api.github.com/repos/neurodatadesign/manifold_random_forests/zipball/master
+   
+   # install main version for autoreject
+   pip install https://api.github.com/repos/autoreject/autoreject/zipball/master
 
 If you're using some private repos, such as ``eztrack``, here's some helper code
-for installing.
+for installing. You'll need to clone private repos locally and then install it manually.
 
 .. code-block::
 
-   # use pipenv to install private repo
-   pipenv install -e git+git@github.com:adam2392/eztrack
-
    # or
    pipenv install -e /Users/adam2392/Documents/eztrack
+   
+   # or if you're just using pip
+   pip install -e /Users/adam2392/Documents/eztrack
 
 Organization Guide
 ------------------
@@ -82,8 +101,9 @@ Development should occur in 3 main steps:
 
 1. BIDS organization: any scripts to convert datasets and test BIDs-compliance should go into `bids/`.
 
-2. Analysis: Each type of analysis should have their own directory
+2. Spatiotemporal Heatmap Generation: Each type of analysis should have their own directory
 
+3. Analysis of Feature: 
 
 Setup Jupyter Kernel To Test
 ============================
