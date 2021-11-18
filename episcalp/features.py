@@ -84,22 +84,22 @@ def heatmap_features(feature_map, ch_names=None, types=None):
             + [this_data.mean()]
             + [this_data.std()]
         )
-        feature_vec.append(list(quantile_vec))
+        feature_vec.extend(list(quantile_vec))
     if "spatial" in types:
         spatial_vec = this_data
-        feature_vec.append(spatial_vec)
+        feature_vec.extend(spatial_vec)
 
-    if "lobe" in types:
+    if "lobes" in types:
         lobe_dict = _standard_lobes(separate_hemispheres=False)
         lobe_vals = []
         for lobe, lobe_chs in lobe_dict.items():
             idx = [idx for idx in range(len(ch_names)) if ch_names[idx] in lobe_chs]
             if idx == []:
-                lobe_vals.append(-1)
+                #lobe_vals.append(-1)
                 continue
             lobe_vals.append(np.nanmean(this_data[idx]))
             lobe_vals.append(np.std(this_data[idx]))
-        feature_vec.append(lobe_vals)
+        feature_vec.extend(lobe_vals)
 
     if "distribution" in types:
         n_chs = len(ch_names)
@@ -115,7 +115,7 @@ def heatmap_features(feature_map, ch_names=None, types=None):
 
         distribution_vals.append(entropy(this_data, uni_dist))  # kl divergence from uniform
 
-        feature_vec.append(distribution_vals)
+        feature_vec.extend(distribution_vals)
 
     #feature_vec = np.array(feature_vec)
-    return feature_vec[0]
+    return feature_vec
