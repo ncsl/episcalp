@@ -3,8 +3,12 @@ from typing import Dict
 from mne_bids.path import get_bids_path_from_fname
 import numpy as np
 from mne import make_fixed_length_epochs
-from mne.time_frequency import EpochsTFR
+from mne.time_frequency import EpochsTFR, read_tfrs
 from mne_bids import read_raw_bids, get_entity_vals, get_entities_from_fname, BIDSPath
+from pathlib import Path
+import joblib
+
+from eztrack.io import read_derivative_npy
 
 from episcalp.utils import (
     get_best_matching_montage,
@@ -222,6 +226,10 @@ def load_derivative_heatmaps(
                 deriv_data = deriv.data
                 deriv_data = _preprocess_epochs_tfr(deriv_data)
             else:
+                # apply normalization to fragility heatmaps because
+                # they aren't normalized apriori
+                if 'perturbmatrix' in fpath.name:
+                    deriv_data.normalize()
                 deriv_data = deriv.get_data()
 
             dataset["subject"].append(subject)
@@ -314,3 +322,96 @@ def read_scalp_eeg(
         raw.set_eeg_reference("average")
 
     return raw
+
+
+def _combine_datasets(deriv_dataset):
+    dataset = deriv_dataset[0]
+    for deriv in deriv_dataset:
+        for key in deriv.keys():
+            if key not in dataset.keys():
+                raise RuntimeError(
+                    f"All keys in {dataset.keys()} must match every other derived dataset. "
+                    f"{key}, {deriv.keys()}."
+                )
+
+    # convert to a dictionary of lists
+    derived_dataset = {key: [] for key in dataset.keys()}
+    for deriv in deriv_dataset:
+        for key in derived_dataset.keys():
+            derived_dataset[key].extend(deriv[key])
+    return derived_dataset
+
+
+def load_all_spatiotemporal_datasets(roots, deriv_fname, verbose=True):
+    """Load all spatiotemoral datasets.
+
+    Parameters
+    ----------
+    roots : list
+        List of BIDS dataset roots. It is assumed that each
+        derivative is stored in a structured way within each of
+        the BIDS derivatives.
+    deriv_fname : str
+        The filename for where to save the saved datasets as a
+        pickle file.
+
+    Returns
+    -------
+    all_datasets : dict
+        A dictionary of each spatiotemporal heatmap loaded
+        with 'subject', 'ch_names', 'root', 'data', and
+        'bids_path' (which corresponds to the original raw data).
+    """
+    radius = 1.25
+    reference = 'monopolar'
+    frag_deriv_chain = Path("fragility") / f"radius{radius}" / "win-500" / "step-250" / reference
+    delta_tfr_deriv_chain = Path("tfr") / "delta"
+    theta_tfr_deriv_chain = Path("tfr") / "theta"
+    alpha_tfr_deriv_chain = Path("tfr") / "alpha"
+    beta_tfr_deriv_chain = Path("tfr") / "beta"
+    ss_deriv_chain = Path("sourcesink") / "win-500" / "step-250" / reference
+    
+    # dataset params for loading in all spatiotemporal heatmaps
+    # tuple of 
+    # name, derivative chain, reading function and search string
+    read_tfrs_lamb = lambda x: read_tfrs(x)[0]
+    dataset_params = [
+        ('fragility', frag_deriv_chain, read_derivative_npy, '*desc-perturbmatrix*.npy'),
+        ('ssind', ss_deriv_chain, read_derivative_npy, "*desc-ssindmatrix*.npy"),
+        ('sourceinfl', ss_deriv_chain, read_derivative_npy, "*desc-sourceinflmatrix*.npy"),
+        ('sinkconn', ss_deriv_chain, read_derivative_npy, "*desc-sinkconn*.npy"),
+        ('sinkind', ss_deriv_chain, read_derivative_npy, "*desc-sinkind*.npy"),
+        ('delta', delta_tfr_deriv_chain, read_tfrs_lamb, f"*desc-delta*.h5"),
+        ('theta', theta_tfr_deriv_chain, read_tfrs_lamb, f"*desc-theta*.h5"),
+        ('alpha', alpha_tfr_deriv_chain, read_tfrs_lamb, f"*desc-alpha*.h5"),
+        ('beta', beta_tfr_deriv_chain, read_tfrs_lamb, f"*desc-beta*.h5")
+    ]
+
+    # load fragility data
+    all_datasets = dict()
+    for name, deriv_chain, read_func, search_str in dataset_params:
+        datasets = []
+
+        for root in roots:
+            if verbose:
+                print(f"Loading {name} for {root}")
+            if name in ['fragility', 'ssind', 'sourceinfl', 'sinkconn', 'sinkind']:
+                kwargs = dict(source_check=False)
+            else:
+                kwargs = dict()
+            dataset = load_derivative_heatmaps(
+                root / "derivatives" / deriv_chain,
+                search_str=search_str,
+                read_func=read_func,
+                subjects=None,
+                verbose=False,
+                **kwargs
+            )
+            datasets.append(dataset)
+        dataset = _combine_datasets(datasets)
+        
+        all_datasets[name] = dataset
+    
+    # write pickle file
+    joblib.dump(all_datasets, deriv_fname)  
+    return all_datasets
