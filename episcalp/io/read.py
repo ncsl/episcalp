@@ -222,6 +222,8 @@ def load_derivative_heatmaps(
                 deriv_data = deriv.data
                 deriv_data = _preprocess_epochs_tfr(deriv_data)
             else:
+                if "perturbmatrix" in fpath.name:
+                    deriv.normalize()
                 deriv_data = deriv.get_data()
 
             dataset["subject"].append(subject)
