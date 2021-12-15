@@ -201,17 +201,59 @@ def get_X_features(derived_dataset, data_name="data", feature_names=None):
     return X
 
 
-def exclude_subjects(X, y, subjects, roots, exclusion_criteria):
+def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, continuous_exclusion_criteria=None):
+    """
+    Exclude subjects by providing column values from the participants.tsv to remove.
+
+    Parameters
+    ----------
+    X
+    y
+    subjects
+    roots
+    categorical_exclusion_criteria: dict
+        Keynames are categorical columns from the participants.tsv and the values are the values to exclude.
+    continuous_exclusion_criteria: dict
+        Keynames are continuous columns from the participants.tsv and the values are list of ranges to exclude.
+        First character must be the modifier. i.e. ">65"
+
+    Returns
+    -------
+
+    """
     dfs = []
     for root in roots:
         participants_fpath = root / "participants.tsv"
         df = pd.read_csv(participants_fpath, sep="\t")
         dfs.append(df)
     participants_df = pd.concat(dfs, ignore_index=True)
-    for colname, elist in exclusion_criteria.items():
+    for colname, elist in categorical_exclusion_criteria.items():
         if elist is None:
             continue
         participants_df = participants_df[~participants_df[colname].isin(elist)]
+    for colname, elist in continuous_exclusion_criteria.items():
+        if elist in None:
+            continue
+        min_cutoff = None
+        max_cutoff = None
+        for erange in elist:
+            modifier = erange[0]
+            value = erange[1:]
+            if modifier == ">":
+                max_cutoff = value
+            if modifier == "<":
+                min_cutoff = value
+        if min_cutoff is None and max_cutoff is None:
+            continue
+        if min_cutoff is None:
+            participants_df = participants_df[participants_df[colname] < max_cutoff]
+        elif max_cutoff is None:
+            participants_df = participants_df[participants_df[colname] > min_cutoff]
+        elif min_cutoff > max_cutoff:
+            participants_df = participants_df[~participants_df[colname].between(max_cutoff, min_cutoff, inclusive=False)]
+        else:
+            participants_df = participants_df[participants_df[colname].between(min_cutoff, max_cutoff, inclusive=False)]
+
     keep_subjects = []
     for ind, row in participants_df.iterrows():
         keep_subjects.append(row['participant_id'].replace("sub-", ""))
