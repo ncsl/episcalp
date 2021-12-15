@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 from scipy.stats import entropy, skew, kurtosis
+from sklearn.decomposition import PCA
 
 from .montage import _standard_lobes
 
@@ -67,55 +68,76 @@ def spike_feature_vector(ch_spike_df, ch_names, type="rate"):
     return feature_vec
 
 
-def heatmap_features(feature_map, ch_names=None, types=None):
+def heatmap_features(feature_map, types, ch_names=None, summary_method="average", **kwargs):
     if types is None:
-        types = ["quantile"]
+        return None
+    elif len(types) == 0:
+        return None
+    type_names = types
     if ch_names is None and "lobes" in types:
         raise ValueError('ch_names must be passed to calculate lobe features')
-    # average over time
-    this_data = np.nanmean(feature_map, axis=1)
-    # features = np.empty((0,))
+    n_chan = feature_map.shape[0]
+
+    # Reduce the dimensions of the data either by averaging or performing PCA on time domain
+    if summary_method == "average":
+        this_data = np.nanmean(feature_map, axis=1).reshape(-1, 1)
+    elif summary_method == "pca":
+        n_components = kwargs.get("n_components", 1)
+        pca = PCA(n_components=n_components)
+        pca.fit(feature_map)
+
+        this_data = []
+        for idx in range(n_chan):
+            pcai = pca.transform(feature_map[idx, :].reshape(1, -1))
+            this_data.append(pcai[0])
+        this_data = np.array(this_data)
 
     feature_vec = []
-    if "quantile" in types:
-        # distributional features of the EEG electrodes
-        quantile_vec = np.hstack(
-            [np.quantile(this_data, q=q) for q in [0.1, 0.5, 0.9]]
-            + [this_data.mean()]
-            + [this_data.std()]
-        )
-        feature_vec.extend(list(quantile_vec))
-    if "spatial" in types:
+    if "quantile" in type_names:
+        for col in range(this_data.shape[1]):
+            this_data_ = np.array([td[col] for td in this_data])
+            # distributional features of the EEG electrodes
+            quantile_vec = np.hstack(
+                [np.quantile(this_data_, q=q) for q in [0.1, 0.5, 0.9]]
+                + [this_data_.mean()]
+                + [this_data_.std()]
+            )
+            feature_vec.extend(list(quantile_vec))
+    if "spatial" in type_names:
         spatial_vec = this_data
         feature_vec.extend(spatial_vec)
 
-    if "lobes" in types:
-        lobe_dict = _standard_lobes(separate_hemispheres=False)
-        lobe_vals = []
-        for lobe, lobe_chs in lobe_dict.items():
-            idx = [idx for idx in range(len(ch_names)) if ch_names[idx] in lobe_chs]
-            if idx == []:
-                #lobe_vals.append(-1)
-                continue
-            lobe_vals.append(np.nanmean(this_data[idx]))
-            lobe_vals.append(np.std(this_data[idx]))
-        feature_vec.extend(lobe_vals)
+    if "lobes" in type_names:
+        separate = kwargs.get("separate_hemispheres", False)
+        lobe_dict = _standard_lobes(separate_hemispheres=separate)
+        for col in range(this_data.shape[1]):
+            this_data_ = np.array([td[col] for td in this_data])
+            lobe_vals = []
+            for lobe, lobe_chs in lobe_dict.items():
+                idx = [idx for idx in range(len(ch_names)) if ch_names[idx] in lobe_chs]
+                if idx == []:
+                    lobe_vals.append(-1)
+                    lobe_vals.append(-1)
+                    continue
+                lobe_vals.append(np.nanmean(this_data_[idx]))
+                lobe_vals.append(np.std(this_data_[idx]))
+            feature_vec.extend(lobe_vals)
 
-    if "distribution" in types:
+    if "distribution" in type_names:
         n_chs = len(ch_names)
         distribution_vals = []
         uni_dist = np.ones((n_chs, 1)) / n_chs
         uni_dist = uni_dist.reshape((len(uni_dist),))
 
-        distribution_vals.append(entropy(this_data))  # entropy
-        distribution_vals.append(np.var(this_data))  # variance
-        distribution_vals.append(skew(this_data))  # skew
-        distribution_vals.append(kurtosis(this_data))  # kurtosis
-        # distribution_vals.append(np.mean(this_data))
+        for col in range(this_data.shape[1]):
+            this_data_ = np.array([td[col] for td in this_data])
+            distribution_vals.append(entropy(this_data_))  # entropy
+            distribution_vals.append(np.var(this_data_))  # variance
+            distribution_vals.append(skew(this_data_))  # skew
+            distribution_vals.append(kurtosis(this_data_))  # kurtosis
 
-        distribution_vals.append(entropy(this_data, uni_dist))  # kl divergence from uniform
+            distribution_vals.append(entropy(this_data_, uni_dist))  # kl divergence from uniform
 
-        feature_vec.extend(distribution_vals)
+            feature_vec.extend(distribution_vals)
 
-    #feature_vec = np.array(feature_vec)
     return feature_vec
