@@ -110,9 +110,9 @@ def _convert_folder(
         if subject.startswith("0"):
             exp_condition = "non-epilepsy-normal-eeg"
         elif subject.startswith("1"):
-            exp_condition = "epilepsy-wout-abnormalities"
+            exp_condition = "epilepsy-normal-eeg"
         elif subject.startswith("2"):
-            exp_condition = "epilepsy-with-abnormalities"
+            exp_condition = "epilepsy-abnormal-eeg"
         else:
             raise RuntimeError(f"There is an issue with this subject  {subject}")
 
