@@ -29,6 +29,8 @@ def pipeline_jhh():
         "epilepsy_lobe": "For focal epilepsy, which lobes it occurs in.",
         "age": "",
         "sex": "",
+        "hand": "",
+        "exp_condition": "Non-epilepsy with normal EEG, epilepsy with normal EEG, or epilepsy with abnormal EEG",
     }
 
     subjects = get_entity_vals(bids_root, "subject")
@@ -42,6 +44,16 @@ def pipeline_jhh():
         else:
             site = "BV"
         subject = str(row["patient_id"]).zfill(3)
+        if subject.startswith("0"):
+            outcome = 0
+            exp_condition = "non-epilepsy-normal-eeg"
+        elif subject.startswith("1"):
+            outcome = 1
+            exp_condition = "epilepsy-normal-eeg"
+        elif subject.startswith("2"):
+            outcome = 2
+            exp_condition = "epilepsy-abnormal-eeg"
+
         if site_pref not in str(subject):
             subject = f"{site_pref}{subject}"
 
@@ -49,19 +61,50 @@ def pipeline_jhh():
             print(f"Skipping {subject}")
             continue
 
+ 
         _update_site(bids_root, subject, site)
 
+        # for key, description in columns.items():
+        #     value = row[key]
+        #     if pd.isnull(value):
+        #         value = "n/a"
+        #     update_participants_info(
+        #         root=bids_root,
+        #         subject=subject,
+        #         key=key,
+        #         value=value,
+        #         description=description,
+        #     )
         for key, description in columns.items():
-            value = row[key]
-            if pd.isnull(value):
-                value = "n/a"
-            update_participants_info(
-                root=bids_root,
-                subject=subject,
-                key=key,
-                value=value,
-                description=description,
-            )
+            if key == "outcome":
+                update_participants_info(
+                    root=bids_root,
+                    subject=subject,
+                    key=key,
+                    value=outcome,
+                    description=description,
+                )
+            elif key == 'exp_condition':
+                update_participants_info(
+                    root=bids_root,
+                    subject=subject,
+                    key=key,
+                    value=exp_condition,
+                    description=description,
+                )
+            else:
+                value = row[key]
+                if pd.isnull(value):
+                    value = "n/a"
+                if isinstance(value, str):
+                    value = value.lower()
+                update_participants_info(
+                    root=bids_root,
+                    subject=subject,
+                    key=key,
+                    value=value,
+                    description=description,
+                )
 
 
 def pipeline_jefferson():
@@ -83,6 +126,10 @@ def pipeline_jefferson():
         "epilepsy_type": "Focal or generalized epilepsy",
         "epilepsy_hemisphere": "Right, left, or bihemispheric",
         "epilepsy_lobe": "For focal epilepsy, which lobes it occurs in.",
+        # "age": "",
+        # "sex": "",
+        # "hand": "",
+        "exp_condition": "Non-epilepsy with normal EEG, epilepsy with normal EEG, or epilepsy with abnormal EEG",
     }
 
     subjects = get_entity_vals(bids_root, "subject")
@@ -94,10 +141,13 @@ def pipeline_jefferson():
         subject = str(row["patient_id"]).zfill(3)
         if subject.startswith("0"):
             outcome = 0
+            exp_condition = "non-epilepsy-normal-eeg"
         elif subject.startswith("1"):
             outcome = 1
+            exp_condition = "epilepsy-normal-eeg"
         elif subject.startswith("2"):
             outcome = 2
+            exp_condition = "epilepsy-abnormal-eeg"
 
         if site not in str(subject):
             subject = f"{site}{subject}"
@@ -115,6 +165,14 @@ def pipeline_jefferson():
                     subject=subject,
                     key=key,
                     value=outcome,
+                    description=description,
+                )
+            elif key == 'exp_condition':
+                update_participants_info(
+                    root=bids_root,
+                    subject=subject,
+                    key=key,
+                    value=exp_condition,
                     description=description,
                 )
             else:
@@ -143,4 +201,5 @@ def _update_site(bids_root, subject, site):
 
 
 if __name__ == "__main__":
+    pipeline_jhh()
     pipeline_jefferson()

@@ -11,7 +11,7 @@ import joblib
 from eztrack.io import read_derivative_npy
 
 from episcalp.utils import (
-    get_best_matching_montage,
+    get_best_matching_montage, get_standard_1020_montage
 )
 from .persyst import compute_spike_df
 
@@ -244,7 +244,7 @@ def read_scalp_eeg(
     bids_path, reference, rereference=False, resample_sfreq=None, verbose=True
 ):
     # load in the data via mne-bids
-    raw = read_raw_bids(bids_path)
+    raw = read_raw_bids(bids_path, verbose=verbose)
 
     # should we resample?
     if resample_sfreq is not None:
@@ -261,7 +261,7 @@ def read_scalp_eeg(
     raw = raw.set_channel_types(ch_types)
 
     # try to get the best matching montage based on string matching of channels
-    best_montage, montage_name = get_best_matching_montage(raw.ch_names)
+    best_montage, montage_name = get_best_matching_montage(raw.ch_names, verbose=verbose)
     raw.rename_channels(_get_montage_rename_dict(raw.ch_names, best_montage.ch_names))
 
     # set montage and then convert all to upper-casing again
@@ -272,10 +272,10 @@ def read_scalp_eeg(
     montage_chs = [ch.upper() for ch in best_montage.ch_names]
     not_in_montage_chs = [ch for ch in raw.ch_names if ch.upper() not in montage_chs]
     raw.info["bads"].extend(not_in_montage_chs)
-    print(
-        f"Dropping these channels that are not in {montage_name} montage: ",
-        not_in_montage_chs,
-    )
+    # print(
+    #     f"Dropping these channels that are not in {montage_name} montage: ",
+    #     not_in_montage_chs,
+    # )
 
     # get additional reference channels
     # that needs to be hardcoded for 1020 montage
@@ -294,6 +294,11 @@ def read_scalp_eeg(
                 ref_chs.append(ch_name)
         raw.load_data()
         raw.info["bads"].extend(ref_chs)
+
+    _chs = get_standard_1020_montage()
+    for ch in raw.ch_names:
+        if ch not in _chs:
+            raw.info['bads'].append(ch)
 
     # load data into RAM
     raw.load_data()

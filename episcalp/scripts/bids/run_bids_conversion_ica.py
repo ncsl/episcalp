@@ -15,9 +15,9 @@ from episcalp.bids import write_epitrack_bids, append_original_fname_to_scans
 def convert_eeglab_ica_to_bids():
     root = Path("D:/OneDriveParent/OneDrive - Johns Hopkins/Shared Documents/40Hz-30")
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
-    # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
+    root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
 
-    filter_scheme = "1-30Hz-30"
+    filter_scheme = "1-90Hz-30"
     window_scheme = "win-20"
     authors = "Patrick Myers and Adam Li"
     dataset_name = "Jefferson-ICLabel-Cleaned"
@@ -32,6 +32,8 @@ def convert_eeglab_ica_to_bids():
     montage = "standard_1020"
     datatype = "eeg"
     suffix = "eeg"
+    task = 'emu'
+    overwrite = True
 
     # desired extension
     extension = ".edf"
@@ -47,6 +49,8 @@ def convert_eeglab_ica_to_bids():
 
         for idx, fpath in enumerate(subject_fpaths):
             entities = get_entities_from_fname(fpath.name)
+            if entities['task'] is None:
+                entities['task'] = task
             print("Entities: ", entities)
             print(fpath)
             bids_path = BIDSPath(
@@ -62,7 +66,7 @@ def convert_eeglab_ica_to_bids():
             bids_path = write_epitrack_bids(
                 source_path=fpath,
                 bids_path=bids_path,
-                overwrite=True,
+                overwrite=overwrite,
                 format="EDF",
                 montage=montage,
                 verbose=False,
@@ -104,7 +108,7 @@ def _merge_src_metadata():
     root = Path("/Users/adam2392/Johns Hopkins/Scalp EEG JHH - Documents/bids/")
     # root = Path("/Users/adam2392/Johns Hopkins/Jefferson_Scalp - Documents/root/")
 
-    filter_scheme = "1-30Hz-30"
+    filter_scheme = "1-90Hz-30"
     window_scheme = "win-20"
 
     # root and filtering scheme
