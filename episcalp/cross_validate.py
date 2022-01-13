@@ -5,7 +5,7 @@ import pandas as pd
 
 from .preprocess.montage import _standard_lobes
 from .scripts.spikes.summary import _get_spike_annots
-
+from numpy.random import SeedSequence, default_rng
 
 def _compute_spike_rates(raw):
     raw.pick_types(eeg=True)
@@ -231,28 +231,33 @@ def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, cont
         if elist is None:
             continue
         participants_df = participants_df[~participants_df[colname].isin(elist)]
-    for colname, elist in continuous_exclusion_criteria.items():
-        if elist in None:
-            continue
-        min_cutoff = None
-        max_cutoff = None
-        for erange in elist:
-            modifier = erange[0]
-            value = erange[1:]
-            if modifier == ">":
-                max_cutoff = value
-            if modifier == "<":
-                min_cutoff = value
-        if min_cutoff is None and max_cutoff is None:
-            continue
-        if min_cutoff is None:
-            participants_df = participants_df[participants_df[colname] < max_cutoff]
-        elif max_cutoff is None:
-            participants_df = participants_df[participants_df[colname] > min_cutoff]
-        elif min_cutoff > max_cutoff:
-            participants_df = participants_df[~participants_df[colname].between(max_cutoff, min_cutoff, inclusive=False)]
-        else:
-            participants_df = participants_df[participants_df[colname].between(min_cutoff, max_cutoff, inclusive=False)]
+
+    # KMG: The following for-loop raises an error because continous_exclusing_criteria is defined as None, so adding try and except to run
+    try:
+        for colname, elist in continuous_exclusion_criteria.items():
+            if elist in None:
+                continue
+            min_cutoff = None
+            max_cutoff = None
+            for erange in elist:
+                modifier = erange[0]
+                value = erange[1:]
+                if modifier == ">":
+                    max_cutoff = value
+                if modifier == "<":
+                    min_cutoff = value
+            if min_cutoff is None and max_cutoff is None:
+                continue
+            if min_cutoff is None:
+                participants_df = participants_df[participants_df[colname] < max_cutoff]
+            elif max_cutoff is None:
+                participants_df = participants_df[participants_df[colname] > min_cutoff]
+            elif min_cutoff > max_cutoff:
+                participants_df = participants_df[~participants_df[colname].between(max_cutoff, min_cutoff, inclusive=False)]
+            else:
+                participants_df = participants_df[participants_df[colname].between(min_cutoff, max_cutoff, inclusive=False)]
+    except:
+        print('continous_exclusion_criteria is None')
 
     keep_subjects = []
     for ind, row in participants_df.iterrows():
@@ -263,3 +268,64 @@ def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, cont
     y = y[keep_idx]
     keep_subjects = subjects[keep_idx]
     return X, y, keep_subjects
+
+
+def ensureBalancedLabels(n_splits,perc_train,y,random_state):
+
+    """
+    Splits dataset into training and test set while ensuring equal balance of classes in each set
+    Parameters: 
+        n_splits: Number of different train/test splits
+        perc_train: Percentage of dataset used for training
+        y: Class labels of patients in dataset [n_patients x 1]
+        random_state: Seed for random number generator
+    Returns:
+        train_ind: Indices of patients in training set for each split (n_splits x n_train)
+        test_ind: Indices of patients in test set of each split (n_splits x n_train)
+    """
+
+    ss = SeedSequence(random_state)
+    child_seeds = ss.spawn(n_splits)    
+
+    y = np.array(y)
+    _ind_class1 = np.where(y==0)
+    ind_class1 = _ind_class1[0]
+    _ind_class2 = np.where(y==1)
+    ind_class2 = _ind_class2[0]
+
+    n_class1 = len(ind_class1)
+    n_class2 = len(ind_class2)
+    n_patients = n_class1+n_class2
+    # Number of patients from each class in training set
+    n_train_class = round((n_patients*perc_train)/2)
+    n_train = n_train_class*2
+    n_test = n_patients-n_train
+
+    if n_train_class > n_class1:
+        raise ValueError("Not enough patients in class y=0 for a balanced split")
+    elif n_train_class > n_class2:
+        raise ValueError("Not enough patients in class y=1 for a balanced split")
+
+    try:
+        train_ind = np.ndarray(shape=(n_splits,n_train),dtype=int)
+        test_ind = np.ndarray(shape=(n_splits,n_test),dtype=int)
+        for split in range(n_splits):
+            rng = default_rng(split)
+
+            # Randomly select equal number of patients from each class for training set
+            perm_class1_ind = rng.permutation(n_class1)
+            perm_class2_ind = rng.permutation(n_class2)
+            train_ind1 = ind_class1[perm_class1_ind[0:n_train_class]]
+            train_ind2 = ind_class2[perm_class2_ind[0:n_train_class]]
+            _train_ind = np.concatenate([train_ind1,train_ind2])
+            _train_ind = np.sort(_train_ind)
+            _test_ind = np.array(range(0,n_patients))
+            _test_ind = np.delete(_test_ind,_train_ind)
+
+            train_ind[split,0:] = _train_ind
+            test_ind[split,0:] = _test_ind
+
+    except ValueError as e:
+        print(str(e))
+
+    return train_ind, test_ind
