@@ -232,7 +232,7 @@ def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, cont
             continue
         participants_df = participants_df[~participants_df[colname].isin(elist)]
     for colname, elist in continuous_exclusion_criteria.items():
-        if elist in None:
+        if elist is None:
             continue
         min_cutoff = None
         max_cutoff = None
