@@ -221,6 +221,9 @@ def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, cont
     -------
 
     """
+    if not continuous_exclusion_criteria:
+        continuous_exclusion_criteria = dict()
+        
     dfs = []
     for root in roots:
         participants_fpath = root / "participants.tsv"
@@ -232,8 +235,6 @@ def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, cont
             continue
         participants_df = participants_df[~participants_df[colname].isin(elist)]
 
-    # KMG: The following for-loop raises an error because continous_exclusing_criteria is defined as None, so adding try and except to run
-    try:
         for colname, elist in continuous_exclusion_criteria.items():
             if elist in None:
                 continue
@@ -256,8 +257,6 @@ def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, cont
                 participants_df = participants_df[~participants_df[colname].between(max_cutoff, min_cutoff, inclusive=False)]
             else:
                 participants_df = participants_df[participants_df[colname].between(min_cutoff, max_cutoff, inclusive=False)]
-    except:
-        print('continous_exclusion_criteria is None')
 
     keep_subjects = []
     for ind, row in participants_df.iterrows():
@@ -284,14 +283,11 @@ def ensureBalancedLabels(n_splits,perc_train,y,random_state):
         test_ind: Indices of patients in test set of each split (n_splits x n_train)
     """
 
-    ss = SeedSequence(random_state)
-    child_seeds = ss.spawn(n_splits)    
+    np.random.seed(random_state)   
 
     y = np.array(y)
-    _ind_class1 = np.where(y==0)
-    ind_class1 = _ind_class1[0]
-    _ind_class2 = np.where(y==1)
-    ind_class2 = _ind_class2[0]
+    ind_class1 = np.where(y==0)[0]
+    ind_class2 = np.where(y==1)[0]
 
     n_class1 = len(ind_class1)
     n_class2 = len(ind_class2)
@@ -306,26 +302,17 @@ def ensureBalancedLabels(n_splits,perc_train,y,random_state):
     elif n_train_class > n_class2:
         raise ValueError("Not enough patients in class y=1 for a balanced split")
 
-    try:
-        train_ind = np.ndarray(shape=(n_splits,n_train),dtype=int)
-        test_ind = np.ndarray(shape=(n_splits,n_test),dtype=int)
-        for split in range(n_splits):
-            rng = default_rng(split)
+    balanced_cv = []
+    for split in range(n_splits):
+        
+        # Randomly select equal number of patients from each class for training set
+        train_ind1 = np.random.choice(ind_class1,n_train_class,False)
+        train_ind2 = np.random.choice(ind_class2,n_train_class,False)
+        _train_ind = np.concatenate([train_ind1,train_ind2])
+        _train_ind = np.sort(_train_ind)
+        _test_ind = np.array(range(0,n_patients))
+        _test_ind = np.delete(_test_ind,_train_ind)
 
-            # Randomly select equal number of patients from each class for training set
-            perm_class1_ind = rng.permutation(n_class1)
-            perm_class2_ind = rng.permutation(n_class2)
-            train_ind1 = ind_class1[perm_class1_ind[0:n_train_class]]
-            train_ind2 = ind_class2[perm_class2_ind[0:n_train_class]]
-            _train_ind = np.concatenate([train_ind1,train_ind2])
-            _train_ind = np.sort(_train_ind)
-            _test_ind = np.array(range(0,n_patients))
-            _test_ind = np.delete(_test_ind,_train_ind)
+        balanced_cv.append((_train_ind,_test_ind))
 
-            train_ind[split,0:] = _train_ind
-            test_ind[split,0:] = _test_ind
-
-    except ValueError as e:
-        print(str(e))
-
-    return train_ind, test_ind
+    return balanced_cv
