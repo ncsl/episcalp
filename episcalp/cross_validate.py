@@ -235,28 +235,28 @@ def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, cont
             continue
         participants_df = participants_df[~participants_df[colname].isin(elist)]
 
-        for colname, elist in continuous_exclusion_criteria.items():
-            if elist in None:
-                continue
-            min_cutoff = None
-            max_cutoff = None
-            for erange in elist:
-                modifier = erange[0]
-                value = erange[1:]
-                if modifier == ">":
-                    max_cutoff = value
-                if modifier == "<":
-                    min_cutoff = value
-            if min_cutoff is None and max_cutoff is None:
-                continue
-            if min_cutoff is None:
-                participants_df = participants_df[participants_df[colname] < max_cutoff]
-            elif max_cutoff is None:
-                participants_df = participants_df[participants_df[colname] > min_cutoff]
-            elif min_cutoff > max_cutoff:
-                participants_df = participants_df[~participants_df[colname].between(max_cutoff, min_cutoff, inclusive=False)]
-            else:
-                participants_df = participants_df[participants_df[colname].between(min_cutoff, max_cutoff, inclusive=False)]
+    for colname, elist in continuous_exclusion_criteria.items():
+        if elist is None:
+            continue
+        min_cutoff = None
+        max_cutoff = None
+        for erange in elist:
+            modifier = erange[0]
+            value = erange[1:]
+            if modifier == ">":
+                max_cutoff = value
+            if modifier == "<":
+                min_cutoff = value
+        if min_cutoff is None and max_cutoff is None:
+            continue
+        if min_cutoff is None:
+            participants_df = participants_df[participants_df[colname] < max_cutoff]
+        elif max_cutoff is None:
+            participants_df = participants_df[participants_df[colname] > min_cutoff]
+        elif min_cutoff > max_cutoff:
+            participants_df = participants_df[~participants_df[colname].between(max_cutoff, min_cutoff, inclusive=False)]
+        else:
+            participants_df = participants_df[participants_df[colname].between(min_cutoff, max_cutoff, inclusive=False)]
 
     keep_subjects = []
     for ind, row in participants_df.iterrows():

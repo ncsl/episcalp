@@ -68,7 +68,9 @@ def spike_feature_vector(ch_spike_df, ch_names, type="rate"):
     return feature_vec
 
 
-def heatmap_features(feature_map, types, ch_names=None, summary_method="average", **kwargs):
+def heatmap_features(feature_map, types, ch_names=None, summary_method="average", verbose=False, **kwargs):
+    if verbose:
+        print(f"Looking at types: {types}; with summary_method: {summary_method}; which has kwargs: {kwargs}")
     if types is None:
         return None
     elif len(types) == 0:
@@ -78,9 +80,15 @@ def heatmap_features(feature_map, types, ch_names=None, summary_method="average"
         raise ValueError('ch_names must be passed to calculate lobe features')
     n_chan = feature_map.shape[0]
 
+    possible_summary_methods = ["average", "variance", "pca", "singular_values"]
+    if summary_method not in possible_summary_methods:
+        raise ValueError(f"summary_method must be one of {possible_summary_methods}")
+
     # Reduce the dimensions of the data either by averaging or performing PCA on time domain
     if summary_method == "average":
         this_data = np.nanmean(feature_map, axis=1).reshape(-1, 1)
+    elif summary_method == "variance":
+        this_data = np.nanvar(feature_map, axis=1).reshape(-1, 1)
     elif summary_method == "pca":
         n_components = kwargs.get("n_components", 1)
         pca = PCA(n_components=n_components)
@@ -91,6 +99,13 @@ def heatmap_features(feature_map, types, ch_names=None, summary_method="average"
             pcai = pca.transform(feature_map[idx, :].reshape(1, -1))
             this_data.append(pcai[0])
         this_data = np.array(this_data)
+    elif summary_method == "singular_values":
+        if "lobes" in type_names:
+            raise ValueError(f"Cannot compute lobe features from singular values.")
+        n_components = kwargs.get("n_components", n_chan)
+        pca = PCA(n_components=n_components)
+        pca.fit(feature_map)
+        this_data = pca.singular_values_.reshape(-1, 1)
 
     feature_vec = []
     if "quantile" in type_names:
@@ -122,6 +137,10 @@ def heatmap_features(feature_map, types, ch_names=None, summary_method="average"
                 lobe_vals.append(np.nanmean(this_data_[idx]))
                 lobe_vals.append(np.std(this_data_[idx]))
             feature_vec.extend(lobe_vals)
+    if "first_n" in type_names:
+        n_keep = kwargs.get("n_keep", 2)
+        first_n = [td[0] for td in this_data[0:n_keep]]
+        feature_vec.extend(first_n)
 
     if "distribution" in type_names:
         n_chs = len(ch_names)
@@ -141,3 +160,108 @@ def heatmap_features(feature_map, types, ch_names=None, summary_method="average"
             feature_vec.extend(distribution_vals)
 
     return feature_vec
+
+
+def single_feature(feature_map, ch_names, metric_name, feat_type, summary_method, feat_kw, return_name=False, **kwargs):
+    """
+    Enable retrieval of a single feature.
+
+    This is a bit complicated, but that is the nature of the features we are currently using.
+    """
+    if ch_names is None and feat_type == "lobes":
+        raise ValueError('ch_names must be passed to calculate lobe features')
+    n_chan = feature_map.shape[0]
+
+    possible_summary_methods = ["average", "variance", "pca", "singular_values"]
+    if summary_method not in possible_summary_methods:
+        raise ValueError(f"summary_method must be one of {possible_summary_methods}")
+
+    this_data = feature_map
+    # Reduce the dimensions of the data either by averaging or performing PCA on time domain
+    add_text = ""
+    if summary_method == "average":
+        this_data = np.nanmean(feature_map, axis=1).reshape(-1, 1)
+    elif summary_method == "variance":
+        this_data = np.nanvar(feature_map, axis=1).reshape(-1,1)
+    elif summary_method == "pca":
+        add_text = f"_component{feat_kw['component']}"
+        comp_idx = feat_kw["component"]
+        n_components = kwargs.get("n_components", comp_idx)
+        pca = PCA(n_components=n_components)
+        pca.fit(feature_map)
+
+        this_data_ = []
+        for idx in range(n_chan):
+            pcai = pca.transform(feature_map[idx, :].reshape(1, -1))
+            this_data_.append(pcai[0])
+
+        this_data = np.array([td[comp_idx-1] for td in this_data_])
+    elif summary_method == "singular_values":
+        if feat_type == "lobes":
+            raise ValueError(f"Cannot compute lobe features from singular values.")
+        n_components = kwargs.get("n_components", n_chan)
+        pca = PCA(n_components=n_components)
+        pca.fit(feature_map)
+        this_data = pca.singular_values_.reshape(-1, 1)
+
+    if feat_type == "quantile":
+        # distributional features of the EEG electrodes
+        quantile_vec = np.hstack(
+            [np.quantile(this_data, q=q) for q in [0.1, 0.5, 0.9]]
+            + [this_data.mean()]
+            + [this_data.std()]
+        )
+        quantile_names = ["q0.1", "q0.5", "q0.9", "mean", "std"]
+        feat = quantile_vec[feat_kw["feat_ind"]]
+        if return_name:
+            feat_name = f"{metric_name}_{summary_method}{add_text}_{quantile_names[feat_kw['feat_ind']]}"
+            return feat, feat_name
+        return feat
+    if feat_type == "spatial":
+        spatial_vec = this_data
+        ch_idx = ch_names.index(feat_kw["channel"])
+        feat = spatial_vec[ch_idx]
+        if return_name:
+            feat_name = f"{metric_name}_{summary_method}{add_text}_{feat_kw['channel']}_mean"
+            return feat, feat_name
+        return feat
+    if feat_type == "lobes":
+        separate = kwargs.get("separate_hemispheres", False)
+        lobe_dict = _standard_lobes(separate_hemispheres=separate)
+        lobe = feat_kw["lobe"]
+        lobe_chs = lobe_dict[lobe]
+        idx = [idx for idx in range(len(ch_names)) if ch_names[idx] in lobe_chs]
+        if feat_kw["stat"] == "mean":
+            feat = np.nanmean(this_data[idx])
+        else:
+            feat = np.std(this_data[idx])
+        if return_name:
+            feat_name = f"{metric_name}_{summary_method}{add_text}_{lobe}_{feat_kw['stat']}"
+            return feat, feat_name
+        return feat
+    if feat_type == "first_n":
+        nidx = feat_kw["svn"]
+        feat = this_data[nidx]
+        if return_name:
+            feat_name = f"{metric_name}_{summary_method}{add_text}_{feat_kw['svn']}"
+            return feat, feat_name
+        return feat
+    else:
+        uni_dist = np.ones((n_chan, 1)) / n_chan
+        uni_dist = uni_dist.reshape((len(uni_dist),))
+        if feat_type == "entropy":
+            feat = entropy(this_data)
+        elif feat_type == "variance":
+            feat = np.var(this_data)
+        elif feat_type == "skew":
+            feat = skew(this_data)
+        elif feat_type == "kurtosis":
+            feat = kurtosis(this_data)
+        elif feat_type == "kldiv":
+            feat = entropy(this_data, uni_dist)
+        else:
+            raise ValueError(f"You passed an unknown feat_type: {feat_type}")
+        if return_name:
+            feat_name = f"{metric_name}_{summary_method}{add_text}_{feat_type}"
+            return feat, feat_name
+        return feat

@@ -1,9 +1,10 @@
 import collections
+import json
 from typing import Dict
 from mne_bids.path import get_bids_path_from_fname
 import numpy as np
 from mne import make_fixed_length_epochs
-from mne.time_frequency import EpochsTFR
+from mne.time_frequency import EpochsTFR, AverageTFR
 from mne_bids import read_raw_bids, get_entity_vals, get_entities_from_fname, BIDSPath
 
 from episcalp.utils import (
@@ -128,6 +129,7 @@ def map_rejectlog_to_deriv(
         bad_wins.extend(bad_idx.tolist())
     return bad_wins
 
+
 def load_persyst_spikes(root, subjects=None, search_str="*.edf", verbose=True):
     """Read all persyst spikes."""
     if subjects is None:
@@ -218,7 +220,7 @@ def load_derivative_heatmaps(
 
             # extract data
             ch_names = deriv.ch_names
-            if isinstance(deriv, EpochsTFR):
+            if isinstance(deriv, EpochsTFR) or isinstance(deriv, AverageTFR):
                 deriv_data = deriv.data
                 deriv_data = _preprocess_epochs_tfr(deriv_data)
             else:
