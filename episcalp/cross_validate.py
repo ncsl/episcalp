@@ -201,7 +201,7 @@ def get_X_features(derived_dataset, data_name="data", feature_names=None):
     return X
 
 
-def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, continuous_exclusion_criteria=None):
+def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, continuous_exclusion_criteria=None, return_inds=False):
     """
     Exclude subjects by providing column values from the participants.tsv to remove.
 
@@ -263,9 +263,12 @@ def exclude_subjects(X, y, subjects, roots, categorical_exclusion_criteria, cont
         keep_subjects.append(row['participant_id'].replace("sub-", ""))
     keep_idx_ = [idx for idx, s in enumerate(subjects) if s in keep_subjects]
     keep_idx = np.array(keep_idx_)
+    print(f"X: {X}", X.shape)
     X = X[keep_idx, ...]
     y = y[keep_idx]
     keep_subjects = subjects[keep_idx]
+    if return_inds:
+        return X, y, keep_subjects, keep_idx
     return X, y, keep_subjects
 
 
